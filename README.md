@@ -342,7 +342,5 @@ Academic use only — MCA Minor Project 2026.
 
 Collaborators/Contributors :
 1. <a href="https://github.com/krishanu717" target="_blank">krishanu717</a>
-<br>
 2. <a href="https://github.com/hiitecch" target="_blank">hiitecch</a>
-<br>
 3. <a href="https://github.com/ammiyo" target="_blank">ammiyo</a>
