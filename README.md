@@ -338,3 +338,11 @@ Academic use only — MCA Minor Project 2026.
 - IndiaAI Mission publications
 - Open Government Data Platform (data.gov.in)
 - All open-source libraries used in this project
+
+
+Collaborators/Contributors :
+1. <a href="https://github.com/krishanu717" target="_blank">krishanu717</a>
+<br>
+2. <a href="https://github.com/hiitecch" target="_blank">hiitecch</a>
+<br>
+3. <a href="https://github.com/ammiyo" target="_blank">ammiyo</a>
