@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const authRoutes = require('./routes/auth.routes');
+const msmeRoutes = require('./routes/msme.routes');
+const verificationRoutes = require('./routes/verification.routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -24,6 +26,12 @@ app.get('/api/health', (req, res) => {
 
 // Auth Routes (Public: POST /register, POST /login; Protected: GET /me)
 app.use('/api/auth', authRoutes);
+
+// MSME Profile Routes (Protected: POST /profile, GET /profile, PATCH /profile)
+app.use('/api/msme', msmeRoutes);
+
+// Verification Routes (Protected: POST /verify/gstin, POST /verify/pan, POST /verify/udyam, GET /verification/status)
+app.use('/api/msme', verificationRoutes);
 
 // 404 Handler
 app.use((req, res) => {

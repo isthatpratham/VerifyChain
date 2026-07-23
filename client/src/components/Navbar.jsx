@@ -15,6 +15,7 @@ export function Navbar() {
           {isAuthenticated ? (
             <>
               <Link to="/dashboard" className="text-sm font-medium text-gray-700 hover:text-brand">Dashboard</Link>
+              <Link to="/profile" className="text-sm font-medium text-gray-700 hover:text-brand">Business Profile</Link>
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                 {user?.name || user?.email}
               </span>
