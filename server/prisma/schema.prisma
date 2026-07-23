@@ -32,6 +32,35 @@ enum ComplianceStatus {
   UNKNOWN
 }
 
+enum CompliancePriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RenewalFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+  ONE_TIME
+}
+
+enum RiskLevel {
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+enum RuleStatus {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+  ARCHIVED
+}
+
 enum AlertStatus {
   PENDING
   SENT
@@ -102,12 +131,13 @@ model MsmeProfile {
   created_at           DateTime     @default(now())
   updated_at           DateTime     @updatedAt
 
-  user               User               @relation(fields: [user_id], references: [id])
-  compliance_records ComplianceRecord[]
-  documents          Document[]
-  alerts             Alert[]
-  scheme_matches     SchemeMatch[]
-  buyer_view_logs    BuyerViewLog[]
+  user                 User                @relation(fields: [user_id], references: [id])
+  compliance_records   ComplianceRecord[]
+  documents            Document[]
+  alerts               Alert[]
+  scheme_matches       SchemeMatch[]
+  buyer_view_logs      BuyerViewLog[]
+  rule_evaluation_logs RuleEvaluationLog[]
 
   @@index([gstin])
   @@index([udyam_number])
@@ -117,24 +147,83 @@ model MsmeProfile {
 // ─── COMPLIANCE RECORDS ─────────────────────────────────────────
 
 model ComplianceRecord {
-  id           Int              @id @default(autoincrement())
-  msme_id      Int
-  authority    AuthorityType
-  status       ComplianceStatus @default(UNKNOWN)
-  expiry_date  DateTime?
-  last_checked DateTime         @default(now())
-  notes        String?
-  raw_data     Json?
-  created_at   DateTime         @default(now())
-  updated_at   DateTime         @updatedAt
+  id                Int                @id @default(autoincrement())
+  msme_id           Int
+  authority         AuthorityType
+  status            ComplianceStatus   @default(UNKNOWN)
+  priority          CompliancePriority @default(MEDIUM)
+  renewal_frequency RenewalFrequency   @default(ANNUAL)
+  risk_level        RiskLevel          @default(LOW)
+  expiry_date       DateTime?
+  last_checked      DateTime           @default(now())
+  last_filed        DateTime?
+  filing_reference  String?
+  notes             String?
+  raw_data          Json?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
 
   msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
   alerts       Alert[]
 
   @@unique([msme_id, authority])
   @@index([msme_id])
+  @@index([status])
   @@index([expiry_date])
   @@map("compliance_records")
+}
+
+// ─── COMPLIANCE RULES ───────────────────────────────────────────
+
+model ComplianceRule {
+  id                  Int                @id @default(autoincrement())
+  rule_id             String             @unique
+  rule_name           String
+  description         String
+  version             Int                @default(1)
+  status              RuleStatus         @default(ACTIVE)
+  priority            CompliancePriority @default(MEDIUM)
+  authority           AuthorityType
+  legal_reference     String?
+  effective_date      DateTime?
+  expiry_date         DateTime?
+  conditions          Json
+  success_explanation String
+  failure_explanation String
+  tags                String[]           @default([])
+  metadata            Json?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  evaluation_logs RuleEvaluationLog[]
+
+  @@index([authority])
+  @@index([status])
+  @@index([rule_id])
+  @@map("compliance_rules")
+}
+
+// ─── RULE EVALUATION LOGS ───────────────────────────────────────
+
+model RuleEvaluationLog {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int
+  rule_id            Int
+  evaluated_at       DateTime @default(now())
+  execution_time_ms  Float
+  is_applicable      Boolean
+  matched_conditions Json
+  explanation        String
+  input_snapshot     Json
+  engine_version     String   @default("1.0.0")
+
+  msme_profile    MsmeProfile    @relation(fields: [msme_id], references: [id])
+  compliance_rule ComplianceRule @relation(fields: [rule_id], references: [id])
+
+  @@index([msme_id])
+  @@index([rule_id])
+  @@index([evaluated_at])
+  @@map("rule_evaluation_logs")
 }
 
 // ─── DOCUMENTS ──────────────────────────────────────────────────

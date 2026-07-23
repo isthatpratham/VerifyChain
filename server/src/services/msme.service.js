@@ -1,5 +1,7 @@
 const { msmeProfileRepository } = require('../repositories');
 const { DuplicateError, NotFoundError, ValidationError } = require('../utils/dbErrors');
+const complianceOrchestratorService = require('./complianceOrchestrator.service');
+const businessEventDispatcher = require('../events/BusinessEventDispatcher');
 
 class MsmeService {
   async createProfile(userId, profileData) {
@@ -36,7 +38,16 @@ class MsmeService {
 
     console.log(`[MsmeService] Business profile created for user ${userId} (MSME ID: ${newProfile.id})`);
 
-    // Simulated compliance fetcher side-effect will be wired in Phase 3.2
+    // Synchronize via Orchestration Layer
+    try {
+      await complianceOrchestratorService.synchronizeCompliance(newProfile.id);
+      businessEventDispatcher.emitBusinessEvent(businessEventDispatcher.EVENTS.BUSINESS_CREATED, {
+        msmeId: newProfile.id,
+      });
+    } catch (ruleErr) {
+      console.warn(`[MsmeService] Orchestration synchronization warning for MSME ID ${newProfile.id}: ${ruleErr.message}`);
+    }
+
     return {
       msmeProfile: {
         id: newProfile.id,
@@ -44,7 +55,7 @@ class MsmeService {
         gstin: newProfile.gstin,
         isProfileComplete: newProfile.is_profile_complete,
       },
-      message: 'Profile created. Compliance data is being fetched.',
+      message: 'Profile created. Compliance rules evaluated & synchronized.',
     };
   }
 
@@ -92,6 +103,8 @@ class MsmeService {
     }
 
     const updateData = {};
+    const changedFields = Object.keys(updateFields);
+
     if (updateFields.businessName !== undefined) updateData.business_name = updateFields.businessName;
     if (updateFields.gstin !== undefined) updateData.gstin = updateFields.gstin;
     if (updateFields.udyamNumber !== undefined) updateData.udyam_number = updateFields.udyamNumber;
@@ -110,6 +123,17 @@ class MsmeService {
     const updatedProfile = await msmeProfileRepository.update({ id: profile.id }, updateData);
 
     console.log(`[MsmeService] Business profile updated for MSME ID ${profile.id}`);
+
+    // Selective re-evaluation trigger via Orchestration Layer
+    try {
+      await complianceOrchestratorService.handleBusinessUpdated(updatedProfile.id, changedFields);
+      businessEventDispatcher.emitBusinessEvent(businessEventDispatcher.EVENTS.BUSINESS_UPDATED, {
+        msmeId: updatedProfile.id,
+        changedFields,
+      });
+    } catch (ruleErr) {
+      console.warn(`[MsmeService] Orchestration re-evaluation warning for MSME ID ${updatedProfile.id}: ${ruleErr.message}`);
+    }
 
     return {
       id: updatedProfile.id,

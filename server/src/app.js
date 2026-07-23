@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/auth.routes');
 const msmeRoutes = require('./routes/msme.routes');
 const verificationRoutes = require('./routes/verification.routes');
+const complianceRoutes = require('./routes/compliance.routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -32,6 +33,10 @@ app.use('/api/msme', msmeRoutes);
 
 // Verification Routes (Protected: POST /verify/gstin, POST /verify/pan, POST /verify/udyam, GET /verification/status)
 app.use('/api/msme', verificationRoutes);
+
+// Compliance Data Foundation Routes (Protected: CRUD on /api/compliance and /api/msme/compliance)
+app.use('/api/compliance', complianceRoutes);
+app.use('/api/msme/compliance', complianceRoutes);
 
 // 404 Handler
 app.use((req, res) => {

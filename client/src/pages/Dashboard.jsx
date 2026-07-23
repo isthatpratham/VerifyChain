@@ -1,7 +1,7 @@
 /**
  * Dashboard.jsx
  * Redesigned Enterprise Dashboard with Score Engine Ring, Business Summary,
- * Verification Operations, Searchable Compliance Table, and Service Modules.
+ * Verification Operations, Compliance Workspace, and Service Modules.
  *
  * Strictly preserves existing useAuth, useMsmeProfile, and useBusinessVerification hooks.
  */
@@ -12,7 +12,7 @@ import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { BusinessSummaryCard } from '../components/dashboard/BusinessSummaryCard';
 import { BusinessVerificationCard } from '../components/profile/BusinessVerificationCard';
 import { ScoreRingDisplay } from '../components/dashboard/ScoreRingDisplay';
-import { ComplianceTableDisplay } from '../components/dashboard/ComplianceTableDisplay';
+import { ComplianceWorkspace } from '../components/dashboard/ComplianceWorkspace';
 import { ModulePlaceholdersGrid } from '../components/dashboard/ModulePlaceholdersGrid';
 import { Container } from '../layouts/Container';
 import { Skeleton } from '../ui/Skeleton';
@@ -65,9 +65,9 @@ export default function Dashboard() {
       {/* Registration Verification Operations */}
       {profile && <BusinessVerificationCard profile={profile} />}
 
-      {/* Searchable Regulatory Records Table */}
+      {/* Compliance Workspace */}
       <div className="mt-8">
-        <ComplianceTableDisplay />
+        <ComplianceWorkspace />
       </div>
 
       {/* Service Modules Grid */}
