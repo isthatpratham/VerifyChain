@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────
+
+enum UserRole {
+  MSME_OWNER
+  BUYER
+  ADMIN
+}
+
+enum BusinessType {
+  MANUFACTURING
+  SERVICES
+  TRADING
+  FOOD_PROCESSING
+  CONSTRUCTION
+  OTHER
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  DUE
+  OVERDUE
+  EXEMPT
+  UNKNOWN
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum AlertThreshold {
+  DAYS_30
+  DAYS_15
+  DAYS_7
+}
+
+enum DocumentType {
+  GST_CERTIFICATE
+  EPFO_CERTIFICATE
+  ESIC_CERTIFICATE
+  MCA_CERTIFICATE
+  UDYAM_CERTIFICATE
+  FSSAI_LICENSE
+  FACTORY_LICENSE
+  OTHER
+}
+
+enum AuthorityType {
+  GST
+  EPFO
+  ESIC
+  MCA
+  UDYAM
+  FSSAI
+}
+
+// ─── USERS ──────────────────────────────────────────────────────
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  name          String
+  phone         String?
+  role          UserRole @default(MSME_OWNER)
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  msme_profile MsmeProfile?
+
+  @@map("users")
+}
+
+// ─── MSME PROFILES ──────────────────────────────────────────────
+
+model MsmeProfile {
+  id                   Int          @id @default(autoincrement())
+  user_id              Int          @unique
+  business_name        String
+  gstin                String       @unique
+  udyam_number         String       @unique
+  business_type        BusinessType
+  sector               String
+  state                String
+  district             String
+  employee_count       Int          @default(0)
+  annual_turnover_lakh Float?
+  is_food_business     Boolean      @default(false)
+  is_profile_complete  Boolean      @default(false)
+  last_compliance_sync DateTime?
+  created_at           DateTime     @default(now())
+  updated_at           DateTime     @updatedAt
+
+  user               User               @relation(fields: [user_id], references: [id])
+  compliance_records ComplianceRecord[]
+  documents          Document[]
+  alerts             Alert[]
+  scheme_matches     SchemeMatch[]
+  buyer_view_logs    BuyerViewLog[]
+
+  @@index([gstin])
+  @@index([udyam_number])
+  @@map("msme_profiles")
+}
+
+// ─── COMPLIANCE RECORDS ─────────────────────────────────────────
+
+model ComplianceRecord {
+  id           Int              @id @default(autoincrement())
+  msme_id      Int
+  authority    AuthorityType
+  status       ComplianceStatus @default(UNKNOWN)
+  expiry_date  DateTime?
+  last_checked DateTime         @default(now())
+  notes        String?
+  raw_data     Json?
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @updatedAt
+
+  msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
+  alerts       Alert[]
+
+  @@unique([msme_id, authority])
+  @@index([msme_id])
+  @@index([expiry_date])
+  @@map("compliance_records")
+}
+
+// ─── DOCUMENTS ──────────────────────────────────────────────────
+
+model Document {
+  id            Int           @id @default(autoincrement())
+  msme_id       Int
+  document_type DocumentType
+  authority     AuthorityType
+  file_name     String
+  file_path     String
+  file_size_kb  Int
+  validity_date DateTime?
+  uploaded_at   DateTime      @default(now())
+  notes         String?
+
+  msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
+
+  @@index([msme_id])
+  @@index([authority])
+  @@map("documents")
+}
+
+// ─── ALERTS ─────────────────────────────────────────────────────
+
+model Alert {
+  id                   Int            @id @default(autoincrement())
+  msme_id              Int
+  compliance_record_id Int
+  threshold            AlertThreshold
+  status               AlertStatus    @default(PENDING)
+  scheduled_for        DateTime
+  sent_at              DateTime?
+  failure_reason       String?
+  created_at           DateTime       @default(now())
+
+  msme_profile      MsmeProfile      @relation(fields: [msme_id], references: [id])
+  compliance_record ComplianceRecord @relation(fields: [compliance_record_id], references: [id])
+
+  @@unique([msme_id, compliance_record_id, threshold])
+  @@index([msme_id])
+  @@index([status])
+  @@index([scheduled_for])
+  @@map("alerts")
+}
+
+// ─── GOVERNMENT SCHEMES ─────────────────────────────────────────
+
+model GovernmentScheme {
+  id                   Int      @id @default(autoincrement())
+  scheme_name          String
+  ministry             String
+  description          String
+  eligibility_criteria Json
+  benefit_type         String
+  max_benefit_lakh     Float?
+  application_url      String
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now())
+
+  scheme_matches SchemeMatch[]
+
+  @@index([ministry])
+  @@map("government_schemes")
+}
+
+// ─── SCHEME MATCHES ─────────────────────────────────────────────
+
+model SchemeMatch {
+  id            Int      @id @default(autoincrement())
+  msme_id       Int
+  scheme_id     Int
+  match_score   Int
+  match_reasons Json
+  matched_at    DateTime @default(now())
+
+  msme_profile      MsmeProfile      @relation(fields: [msme_id], references: [id])
+  government_scheme GovernmentScheme @relation(fields: [scheme_id], references: [id])
+
+  @@unique([msme_id, scheme_id])
+  @@index([msme_id])
+  @@index([match_score])
+  @@map("scheme_matches")
+}
+
+// ─── BUYER VIEW LOGS ────────────────────────────────────────────
+
+model BuyerViewLog {
+  id         Int      @id @default(autoincrement())
+  msme_id    Int
+  viewed_at  DateTime @default(now())
+  viewer_ip  String?
+  user_agent String?
+
+  msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
+
+  @@index([msme_id])
+  @@index([viewed_at])
+  @@map("buyer_view_logs")
+}
