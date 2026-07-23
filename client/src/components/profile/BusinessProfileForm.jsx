@@ -1,9 +1,13 @@
+/**
+ * BusinessProfileForm.jsx
+ * Enterprise MSME Profile Form with UI Primitives & resilient value binding.
+ */
 import { useState } from 'react';
-import {
-  Input,
-  SubmitButton,
-  ErrorBanner,
-} from '../auth/AuthFormComponents';
+import { Field } from '../../ui/form/Field';
+import { Input } from '../../ui/Input';
+import { Select } from '../../ui/Select';
+import { Button } from '../../ui/Button';
+import { Alert } from '../../ui/Alert';
 
 const BUSINESS_TYPES = [
   { value: 'MANUFACTURING', label: 'Manufacturing' },
@@ -33,13 +37,14 @@ export function BusinessProfileForm({ initialValues = null, onSubmit, isEdit = f
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, id, value, type, checked } = e.target;
+    const key = name || id;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [key]: type === 'checkbox' ? checked : value,
     }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+    if (errors[key]) {
+      setErrors((prev) => ({ ...prev, [key]: '' }));
     }
   };
 
@@ -136,134 +141,152 @@ export function BusinessProfileForm({ initialValues = null, onSubmit, isEdit = f
   };
 
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-200">
-      <ErrorBanner message={serverError} />
-      <form onSubmit={handleSubmit} noValidate>
+    <div className="p-6 sm:p-8 rounded-[--radius-md] border border-[--vc-border] bg-[--vc-surface-raised]">
+      {serverError && (
+        <div className="mb-6">
+          <Alert variant="error" title="Form Error">
+            {serverError}
+          </Alert>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            id="businessName"
-            label="Business Name"
-            placeholder="e.g., Gupta Textiles Pvt Ltd"
-            value={formData.businessName}
-            onChange={handleChange}
-            error={errors.businessName}
-            required
-            disabled={loading}
-          />
-          <Input
-            id="gstin"
-            label="GSTIN"
-            placeholder="27AABCU9603R1ZX"
-            value={formData.gstin}
-            onChange={handleChange}
-            error={errors.gstin}
-            required
-            disabled={loading || isEdit}
-          />
-          <Input
-            id="udyamNumber"
-            label="Udyam Registration Number"
-            placeholder="UDYAM-MH-00-0012345"
-            value={formData.udyamNumber}
-            onChange={handleChange}
-            error={errors.udyamNumber}
-            required
-            disabled={loading || isEdit}
-          />
-          <div className="mb-4">
-            <label htmlFor="businessType" className="block text-sm font-medium text-gray-700 mb-1">
-              Business Type <span className="text-red-500">*</span>
-            </label>
-            <select
+          <Field label="Business Name" htmlFor="businessName" required error={errors.businessName}>
+            <Input
+              id="businessName"
+              name="businessName"
+              placeholder="e.g., Gupta Textiles Pvt Ltd"
+              value={formData.businessName}
+              onChange={handleChange}
+              error={errors.businessName}
+              disabled={loading}
+              required
+            />
+          </Field>
+
+          <Field label="GSTIN" htmlFor="gstin" required error={errors.gstin} hint={isEdit ? 'GSTIN cannot be changed after registration' : '15-digit Tax Identifier'}>
+            <Input
+              id="gstin"
+              name="gstin"
+              placeholder="27AABCU9603R1ZX"
+              value={formData.gstin}
+              onChange={handleChange}
+              error={errors.gstin}
+              disabled={loading || isEdit}
+              required
+            />
+          </Field>
+
+          <Field label="Udyam Registration Number" htmlFor="udyamNumber" required error={errors.udyamNumber}>
+            <Input
+              id="udyamNumber"
+              name="udyamNumber"
+              placeholder="UDYAM-MH-00-0012345"
+              value={formData.udyamNumber}
+              onChange={handleChange}
+              error={errors.udyamNumber}
+              disabled={loading || isEdit}
+              required
+            />
+          </Field>
+
+          <Field label="Business Type" htmlFor="businessType" required error={errors.businessType}>
+            <Select
               id="businessType"
               name="businessType"
               value={formData.businessType}
               onChange={handleChange}
               disabled={loading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm font-sans focus:outline-none focus:ring-2 focus:ring-brand-light disabled:bg-gray-100"
-            >
-              {BUSINESS_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-            {errors.businessType && (
-              <p className="mt-1 text-xs text-red-600">{errors.businessType}</p>
-            )}
-          </div>
-          <Input
-            id="sector"
-            label="Industry Sector"
-            placeholder="e.g., Textiles, Auto Components"
-            value={formData.sector}
-            onChange={handleChange}
-            error={errors.sector}
-            required
-            disabled={loading}
-          />
-          <Input
-            id="state"
-            label="State"
-            placeholder="e.g., Maharashtra"
-            value={formData.state}
-            onChange={handleChange}
-            error={errors.state}
-            required
-            disabled={loading}
-          />
-          <Input
-            id="district"
-            label="District"
-            placeholder="e.g., Surat, Pune"
-            value={formData.district}
-            onChange={handleChange}
-            error={errors.district}
-            required
-            disabled={loading}
-          />
-          <Input
-            id="employeeCount"
-            label="Employee Count"
-            type="number"
-            placeholder="e.g., 12"
-            value={formData.employeeCount}
-            onChange={handleChange}
-            error={errors.employeeCount}
-            required
-            disabled={loading}
-          />
-          <Input
-            id="annualTurnoverLakh"
-            label="Annual Turnover (₹ Lakhs)"
-            type="number"
-            placeholder="e.g., 45.5"
-            value={formData.annualTurnoverLakh}
-            onChange={handleChange}
-            error={errors.annualTurnoverLakh}
-            disabled={loading}
-          />
-          <div className="mb-4 flex items-center h-full pt-6">
-            <label className="inline-flex items-center cursor-pointer">
+              options={BUSINESS_TYPES}
+            />
+          </Field>
+
+          <Field label="Industry Sector" htmlFor="sector" required error={errors.sector}>
+            <Input
+              id="sector"
+              name="sector"
+              placeholder="e.g., Textiles, Auto Components"
+              value={formData.sector}
+              onChange={handleChange}
+              error={errors.sector}
+              disabled={loading}
+              required
+            />
+          </Field>
+
+          <Field label="State Jurisdiction" htmlFor="state" required error={errors.state}>
+            <Input
+              id="state"
+              name="state"
+              placeholder="e.g., Maharashtra"
+              value={formData.state}
+              onChange={handleChange}
+              error={errors.state}
+              disabled={loading}
+              required
+            />
+          </Field>
+
+          <Field label="District" htmlFor="district" required error={errors.district}>
+            <Input
+              id="district"
+              name="district"
+              placeholder="e.g., Surat, Pune"
+              value={formData.district}
+              onChange={handleChange}
+              error={errors.district}
+              disabled={loading}
+              required
+            />
+          </Field>
+
+          <Field label="Employee Count" htmlFor="employeeCount" required error={errors.employeeCount}>
+            <Input
+              id="employeeCount"
+              name="employeeCount"
+              type="number"
+              placeholder="e.g., 12"
+              value={formData.employeeCount}
+              onChange={handleChange}
+              error={errors.employeeCount}
+              disabled={loading}
+              required
+            />
+          </Field>
+
+          <Field label="Annual Turnover (₹ Lakhs)" htmlFor="annualTurnoverLakh" error={errors.annualTurnoverLakh}>
+            <Input
+              id="annualTurnoverLakh"
+              name="annualTurnoverLakh"
+              type="number"
+              placeholder="e.g., 45.5"
+              value={formData.annualTurnoverLakh}
+              onChange={handleChange}
+              error={errors.annualTurnoverLakh}
+              disabled={loading}
+            />
+          </Field>
+
+          <div className="flex items-center h-full pt-6">
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none text-[--text-sm] font-medium text-[--vc-text-primary]">
               <input
                 type="checkbox"
                 name="isFoodBusiness"
                 checked={formData.isFoodBusiness}
                 onChange={handleChange}
                 disabled={loading}
-                className="rounded border-gray-300 text-brand focus:ring-brand-light h-4 w-4"
+                className="rounded border-[--vc-border] text-[--vc-brand] focus:ring-[--vc-brand]"
               />
-              <span className="ml-2 text-sm text-gray-700 font-medium">
-                Is this a Food Business? (FSSAI required)
-              </span>
+              <span>Is this a Food Business? (Requires FSSAI license)</span>
             </label>
           </div>
         </div>
 
-        <div className="mt-6">
-          <SubmitButton loading={loading}>
-            {isEdit ? 'Update Profile' : 'Complete Setup & Sync Compliance'}
-          </SubmitButton>
+        <div className="pt-4 border-t border-[--vc-border]">
+          <Button type="submit" variant="primary" loading={loading} className="w-full py-2.5">
+            {isEdit ? 'Save Profile Changes' : 'Complete Setup & Sync Compliance'}
+          </Button>
         </div>
       </form>
     </div>

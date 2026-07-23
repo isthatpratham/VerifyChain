@@ -1,0 +1,311 @@
+/*
+ * VerifyChain Design Tokens
+ * Version: 1.0
+ *
+ * Single source of truth for all visual design decisions.
+ * Maps to docs/DESIGN_SYSTEM.md.
+ *
+ * Color palette: Black, White, Prussian Blue, Neutral Grays, Semantic Accents.
+ * Radius: 2px preferred, 4px maximum.
+ * Shadows: minimal — depth via spacing, layering, contrast.
+ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────────────
+   * COLOR — PRIMITIVES
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  /* Black / White */
+  --color-black:          #0a0a0a;
+  --color-white:          #ffffff;
+  --color-off-white:      #f8f8f8;
+
+  /* Prussian Blue scale */
+  --color-prussian-50:    #e8eef5;
+  --color-prussian-100:   #c5d4e6;
+  --color-prussian-200:   #9eb8d5;
+  --color-prussian-300:   #769bc4;
+  --color-prussian-400:   #5786b8;
+  --color-prussian-500:   #003153;   /* Prussian Blue — primary */
+  --color-prussian-600:   #002947;
+  --color-prussian-700:   #002139;
+  --color-prussian-800:   #00182a;
+  --color-prussian-900:   #000f1b;
+
+  /* Neutral Gray scale (cool-toned, no warm gray) */
+  --color-neutral-50:     #f9fafb;
+  --color-neutral-100:    #f3f4f6;
+  --color-neutral-200:    #e5e7eb;
+  --color-neutral-300:    #d1d5db;
+  --color-neutral-400:    #9ca3af;
+  --color-neutral-500:    #6b7280;
+  --color-neutral-600:    #4b5563;
+  --color-neutral-700:    #374151;
+  --color-neutral-800:    #1f2937;
+  --color-neutral-900:    #111827;
+
+  /* Semantic — Success */
+  --color-success-50:     #f0fdf4;
+  --color-success-100:    #dcfce7;
+  --color-success-500:    #16a34a;
+  --color-success-600:    #15803d;
+  --color-success-700:    #166534;
+
+  /* Semantic — Warning */
+  --color-warning-50:     #fffbeb;
+  --color-warning-100:    #fef3c7;
+  --color-warning-500:    #d97706;
+  --color-warning-600:    #b45309;
+  --color-warning-700:    #92400e;
+
+  /* Semantic — Error */
+  --color-error-50:       #fef2f2;
+  --color-error-100:      #fee2e2;
+  --color-error-500:      #dc2626;
+  --color-error-600:      #b91c1c;
+  --color-error-700:      #991b1b;
+
+  /* Semantic — Info */
+  --color-info-50:        #eff6ff;
+  --color-info-100:       #dbeafe;
+  --color-info-500:       #2563eb;
+  --color-info-600:       #1d4ed8;
+  --color-info-700:       #1e40af;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * COLOR — SEMANTIC ALIASES
+   * Maps primitive values to application roles.
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  /* Brand */
+  --vc-brand:             var(--color-prussian-500);
+  --vc-brand-hover:       var(--color-prussian-600);
+  --vc-brand-active:      var(--color-prussian-700);
+  --vc-brand-subtle:      var(--color-prussian-50);
+  --vc-brand-subtle-text: var(--color-prussian-500);
+
+  /* Background */
+  --vc-bg-base:           var(--color-white);
+  --vc-bg-subtle:         var(--color-neutral-50);
+  --vc-bg-muted:          var(--color-neutral-100);
+  --vc-bg-inverse:        var(--color-black);
+  --vc-bg-monochrome:     var(--color-neutral-900);
+
+  /* Surface (for cards, panels) */
+  --vc-surface:           var(--color-white);
+  --vc-surface-raised:    var(--color-neutral-50);
+  --vc-surface-overlay:   var(--color-white);
+
+  /* Text */
+  --vc-text-primary:      var(--color-neutral-900);
+  --vc-text-secondary:    var(--color-neutral-600);
+  --vc-text-tertiary:     var(--color-neutral-400);
+  --vc-text-disabled:     var(--color-neutral-300);
+  --vc-text-inverse:      var(--color-white);
+  --vc-text-brand:        var(--color-prussian-500);
+  --vc-text-link:         var(--color-prussian-500);
+  --vc-text-link-hover:   var(--color-prussian-700);
+
+  /* Border */
+  --vc-border:            var(--color-neutral-200);
+  --vc-border-strong:     var(--color-neutral-300);
+  --vc-border-subtle:     var(--color-neutral-100);
+  --vc-border-brand:      var(--color-prussian-500);
+  --vc-border-focus:      var(--color-prussian-500);
+
+  /* State colors */
+  --vc-success:           var(--color-success-500);
+  --vc-success-bg:        var(--color-success-50);
+  --vc-success-text:      var(--color-success-700);
+  --vc-warning:           var(--color-warning-500);
+  --vc-warning-bg:        var(--color-warning-50);
+  --vc-warning-text:      var(--color-warning-700);
+  --vc-error:             var(--color-error-500);
+  --vc-error-bg:          var(--color-error-50);
+  --vc-error-text:        var(--color-error-700);
+  --vc-info:              var(--color-info-500);
+  --vc-info-bg:           var(--color-info-50);
+  --vc-info-text:         var(--color-info-700);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * TYPOGRAPHY
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  /* Font families */
+  /* Headings: Plus Jakarta Sans (DESIGN_SYSTEM.md) */
+  --font-heading:         'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'IBM Plex Sans', system-ui, sans-serif;
+  /* Body: General Sans (design intent) — IBM Plex Sans used as licensed substitute */
+  --font-body:            'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  /* Monospace */
+  --font-mono:            'IBM Plex Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Font weights */
+  --fw-light:             300;
+  --fw-regular:           400;
+  --fw-medium:            500;
+  --fw-semibold:          600;
+  --fw-bold:              700;
+
+  /* Type scale (step-based, avoids oversized headings) */
+  --text-xs:              0.6875rem;   /* 11px */
+  --text-sm:              0.8125rem;   /* 13px */
+  --text-base:            0.9375rem;   /* 15px */
+  --text-md:              1rem;        /* 16px */
+  --text-lg:              1.125rem;    /* 18px */
+  --text-xl:              1.25rem;     /* 20px */
+  --text-2xl:             1.5rem;      /* 24px */
+  --text-3xl:             1.875rem;    /* 30px */
+  --text-4xl:             2.25rem;     /* 36px */
+  --text-5xl:             2.75rem;     /* 44px */
+  --text-display:         3.25rem;     /* 52px — maximum heading size */
+
+  /* Line heights */
+  --lh-tight:             1.2;
+  --lh-snug:              1.35;
+  --lh-normal:            1.55;
+  --lh-relaxed:           1.7;
+  --lh-loose:             1.9;
+
+  /* Letter spacing */
+  --ls-tight:             -0.03em;
+  --ls-snug:              -0.015em;
+  --ls-normal:            0;
+  --ls-wide:              0.04em;
+  --ls-wider:             0.08em;
+  --ls-caps:              0.12em;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * SPACING
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --space-px:             1px;
+  --space-0:              0;
+  --space-1:              0.25rem;    /* 4px */
+  --space-2:              0.5rem;     /* 8px */
+  --space-3:              0.75rem;    /* 12px */
+  --space-4:              1rem;       /* 16px */
+  --space-5:              1.25rem;    /* 20px */
+  --space-6:              1.5rem;     /* 24px */
+  --space-8:              2rem;       /* 32px */
+  --space-10:             2.5rem;     /* 40px */
+  --space-12:             3rem;       /* 48px */
+  --space-16:             4rem;       /* 64px */
+  --space-20:             5rem;       /* 80px */
+  --space-24:             6rem;       /* 96px */
+  --space-32:             8rem;       /* 128px */
+
+  /* Section vertical rhythm */
+  --section-py:           5rem;
+  --section-py-sm:        3rem;
+  --section-py-lg:        8rem;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * BORDER RADIUS
+   * Maximum: 4px. Preferred: 2px. (DESIGN_SYSTEM.md)
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --radius-none:          0;
+  --radius-sm:            2px;         /* preferred */
+  --radius-md:            4px;         /* maximum for standard components */
+  --radius-pill:          9999px;      /* functional only (e.g. badge) */
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * SHADOWS (minimal — DESIGN_SYSTEM.md)
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --shadow-none:          none;
+  --shadow-xs:            0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm:            0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md:            0 2px 6px -1px rgb(0 0 0 / 0.06), 0 1px 3px -1px rgb(0 0 0 / 0.04);
+  --shadow-card:          0 0 0 1px var(--vc-border);   /* border-based depth, not blur */
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * CONTAINERS
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --container-xs:         36rem;      /* 576px */
+  --container-sm:         42rem;      /* 672px */
+  --container-md:         56rem;      /* 896px */
+  --container-lg:         72rem;      /* 1152px */
+  --container-xl:         80rem;      /* 1280px */
+  --container-2xl:        90rem;      /* 1440px */
+  --container-px:         1.5rem;     /* horizontal padding */
+  --container-px-lg:      2rem;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * Z-INDEX LAYERS
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --z-base:               0;
+  --z-raised:             10;
+  --z-dropdown:           100;
+  --z-sticky:             200;
+  --z-overlay:            300;
+  --z-modal:              400;
+  --z-toast:              500;
+  --z-tooltip:            600;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * ANIMATION & MOTION
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  /* Durations */
+  --duration-instant:     50ms;
+  --duration-fast:        100ms;
+  --duration-normal:      180ms;
+  --duration-slow:        280ms;
+  --duration-deliberate:  400ms;
+  --duration-reveal:      600ms;
+  --duration-page:        350ms;
+
+  /* Easing */
+  --ease-linear:          linear;
+  --ease-out:             cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in:              cubic-bezier(0.4, 0.0, 1.0, 1);
+  --ease-in-out:          cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-spring:          cubic-bezier(0.34, 1.26, 0.64, 1);   /* subtle overshoot */
+  --ease-reveal:          cubic-bezier(0.16, 1, 0.3, 1);       /* reveal animations */
+
+  /* Transition shorthand helpers */
+  --transition-base:      var(--duration-normal) var(--ease-in-out);
+  --transition-fast:      var(--duration-fast) var(--ease-out);
+  --transition-slow:      var(--duration-slow) var(--ease-in-out);
+  --transition-color:     color var(--duration-normal) var(--ease-in-out),
+                          background-color var(--duration-normal) var(--ease-in-out),
+                          border-color var(--duration-normal) var(--ease-in-out);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * FOCUS
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --focus-ring:           0 0 0 2px var(--color-white), 0 0 0 4px var(--vc-border-focus);
+  --focus-ring-inset:     inset 0 0 0 2px var(--vc-border-focus);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * BREAKPOINTS (reference values — use Tailwind classes for responsive)
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  --bp-sm:                640px;
+  --bp-md:                768px;
+  --bp-lg:                1024px;
+  --bp-xl:                1280px;
+  --bp-2xl:               1536px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * REDUCED MOTION — disable all custom transitions when user prefers
+ * ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast:      0ms;
+    --duration-normal:    0ms;
+    --duration-slow:      0ms;
+    --duration-deliberate: 0ms;
+    --duration-reveal:    0ms;
+    --duration-page:      0ms;
+    --transition-base:    none;
+    --transition-fast:    none;
+    --transition-slow:    none;
+    --transition-color:   none;
+  }
+}

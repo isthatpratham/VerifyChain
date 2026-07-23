@@ -1,48 +1,79 @@
+/**
+ * Dashboard.jsx
+ * Redesigned Enterprise Dashboard with Score Engine Ring, Business Summary,
+ * Verification Operations, Searchable Compliance Table, and Service Modules.
+ *
+ * Strictly preserves existing useAuth, useMsmeProfile, and useBusinessVerification hooks.
+ */
 import { useAuth } from '../hooks/useAuth';
 import { useMsmeProfile } from '../hooks/useMsmeProfile';
 import { useBusinessVerification } from '../hooks/useBusinessVerification';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { BusinessSummaryCard } from '../components/dashboard/BusinessSummaryCard';
 import { BusinessVerificationCard } from '../components/profile/BusinessVerificationCard';
+import { ScoreRingDisplay } from '../components/dashboard/ScoreRingDisplay';
+import { ComplianceTableDisplay } from '../components/dashboard/ComplianceTableDisplay';
 import { ModulePlaceholdersGrid } from '../components/dashboard/ModulePlaceholdersGrid';
+import { Container } from '../layouts/Container';
+import { Skeleton } from '../ui/Skeleton';
+import { Alert } from '../ui/Alert';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { profile, loading: profileLoading, error: profileError } = useMsmeProfile();
+  const { profile, loading: profileLoading, error: profileError, refreshProfile } = useMsmeProfile();
   const { statusData } = useBusinessVerification();
 
   if (profileLoading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-sm font-medium text-gray-500">Loading MSME Dashboard...</div>
-      </div>
+      <Container size="xl" className="py-12">
+        <div className="flex flex-col gap-6">
+          <Skeleton className="h-28 w-full rounded-[--radius-md]" />
+          <Skeleton className="h-44 w-full rounded-[--radius-md]" />
+          <Skeleton className="h-64 w-full rounded-[--radius-md]" />
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <Container size="xl" className="py-8">
+      {/* Enterprise Header */}
       <DashboardHeader
         userName={user?.name}
         businessName={profile?.businessName}
         lastSync={profile?.lastComplianceSync}
+        onSync={refreshProfile}
       />
 
       {profileError && !profile && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-          {profileError}
+        <div className="mb-6">
+          <Alert variant="error" title="Dashboard Error">
+            {profileError}
+          </Alert>
         </div>
       )}
 
+      {/* Compliance Health Score Engine Presentation */}
+      <ScoreRingDisplay score={88} level="HIGH" />
+
+      {/* Business Details Overview */}
       <BusinessSummaryCard
         profile={profile}
         verificationStatus={statusData?.verificationStatus}
       />
 
+      {/* Registration Verification Operations */}
       {profile && <BusinessVerificationCard profile={profile} />}
 
+      {/* Searchable Regulatory Records Table */}
+      <div className="mt-8">
+        <ComplianceTableDisplay />
+      </div>
+
+      {/* Service Modules Grid */}
       <div className="mt-8">
         <ModulePlaceholdersGrid />
       </div>
-    </div>
+    </Container>
   );
 }

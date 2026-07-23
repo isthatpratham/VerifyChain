@@ -1,9 +1,18 @@
+/**
+ * BusinessProfilePage.jsx
+ * Redesigned Enterprise Business Profile & Registration Verification Page.
+ * Strictly preserves existing hook integration with useMsmeProfile.
+ */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMsmeProfile } from '../hooks/useMsmeProfile';
 import { BusinessProfileForm } from '../components/profile/BusinessProfileForm';
 import { BusinessProfileCard } from '../components/profile/BusinessProfileCard';
 import { BusinessVerificationCard } from '../components/profile/BusinessVerificationCard';
+import { Container } from '../layouts/Container';
+import { Skeleton } from '../ui/Skeleton';
+import { Alert } from '../ui/Alert';
+import { Button } from '../ui/Button';
 
 export default function BusinessProfilePage() {
   const navigate = useNavigate();
@@ -16,7 +25,7 @@ export default function BusinessProfilePage() {
     setSuccessMessage('Business profile created successfully! Syncing compliance data...');
     setTimeout(() => {
       navigate('/dashboard');
-    }, 1500);
+    }, 1200);
   };
 
   const handleUpdate = async (payload) => {
@@ -30,51 +39,70 @@ export default function BusinessProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-sm font-medium text-gray-500">Loading business profile...</div>
-      </div>
+      <Container size="lg" className="py-12">
+        <div className="flex flex-col gap-6">
+          <Skeleton className="h-10 w-64 rounded-[--radius-sm]" />
+          <Skeleton className="h-44 w-full rounded-[--radius-md]" />
+          <Skeleton className="h-64 w-full rounded-[--radius-md]" />
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">MSME Business Profile & Verification</h1>
-        <p className="mt-1 text-sm text-gray-600">
+    <Container size="lg" className="py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <span className="text-[--text-xs] font-semibold uppercase tracking-[--ls-caps] text-[--vc-text-brand] block mb-1">
+          Enterprise Settings
+        </span>
+        <h1 className="font-[--font-heading] text-[--text-2xl] lg:text-[--text-3xl] font-bold text-[--vc-text-primary]">
+          MSME Business Profile & Registration Verification
+        </h1>
+        <p className="text-[--text-xs] text-[--vc-text-secondary] mt-1">
           Manage your business details, registration IDs, and verify registration credentials.
         </p>
       </div>
 
       {successMessage && (
-        <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700 font-medium">
-          {successMessage}
+        <div className="mb-6">
+          <Alert variant="success" title="Profile Success">
+            {successMessage}
+          </Alert>
         </div>
       )}
 
       {error && !profile && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-          {error}
+        <div className="mb-6">
+          <Alert variant="error" title="Profile Load Error">
+            {error}
+          </Alert>
         </div>
       )}
 
       {!profile ? (
-        <div className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-sm text-blue-800">
-            Welcome! Please complete your MSME Business Profile to unlock automated compliance tracking and supplier health scoring.
-          </div>
+        <div className="flex flex-col gap-6">
+          <Alert variant="info" title="Welcome to VerifyChain">
+            Please complete your MSME Business Profile to unlock automated compliance tracking and supplier health scoring.
+          </Alert>
           <BusinessProfileForm onSubmit={handleCreate} isEdit={false} />
         </div>
       ) : isEditing ? (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">Edit Business Details</h2>
-            <button
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between p-4 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-surface-raised]">
+            <h2 className="font-[--font-heading] text-[--text-base] font-bold text-[--vc-text-primary]">
+              Edit Business Details
+            </h2>
+            <Button
+              type="button"
+              variant="tertiary"
+              size="sm"
               onClick={() => setIsEditing(false)}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
-              Cancel Edit
-            </button>
+              Cancel Editing
+            </Button>
           </div>
+
           <BusinessProfileForm initialValues={profile} onSubmit={handleUpdate} isEdit={true} />
         </div>
       ) : (
@@ -83,6 +111,6 @@ export default function BusinessProfilePage() {
           <BusinessVerificationCard profile={profile} />
         </>
       )}
-    </div>
+    </Container>
   );
 }

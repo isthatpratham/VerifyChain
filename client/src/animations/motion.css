@@ -1,0 +1,166 @@
+/*
+ * VerifyChain — motion.css
+ * Reusable CSS animation classes for reveal, fade, slide, scale, blur, and clip-path mask reveals.
+ * Used by useReveal.js hook + direct className usage.
+ *
+ * All animations use transform + opacity + clip-path (GPU-accelerated).
+ * No layout-triggering properties.
+ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * BASE: Elements are hidden until revealed
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.vc-motion-fade,
+.vc-motion-slide-up,
+.vc-motion-slide-down,
+.vc-motion-slide-left,
+.vc-motion-slide-right,
+.vc-motion-scale,
+.vc-motion-blur,
+.vc-motion-clip {
+  opacity: 0;
+  transition-property: opacity, transform, filter, clip-path;
+  transition-timing-function: var(--ease-reveal);
+  transition-duration: var(--duration-reveal);
+  will-change: opacity, transform, clip-path;
+}
+
+/* Active (revealed) state — added by IntersectionObserver */
+.vc-motion-revealed {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  clip-path: inset(0% 0% 0% 0%) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * VARIANTS
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.vc-motion-fade {
+  /* opacity only */
+}
+
+.vc-motion-slide-up {
+  transform: translateY(20px);
+}
+
+.vc-motion-slide-down {
+  transform: translateY(-20px);
+}
+
+.vc-motion-slide-left {
+  transform: translateX(20px);
+}
+
+.vc-motion-slide-right {
+  transform: translateX(-20px);
+}
+
+.vc-motion-scale {
+  transform: scale(0.97);
+}
+
+.vc-motion-blur {
+  filter: blur(6px);
+  transform: translateY(8px);
+}
+
+.vc-motion-clip {
+  clip-path: inset(0 100% 0 0);
+  transform: translateY(4px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * DELAY UTILITIES (stagger children)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.vc-delay-0   { transition-delay: 0ms; }
+.vc-delay-75  { transition-delay: 75ms; }
+.vc-delay-150 { transition-delay: 150ms; }
+.vc-delay-225 { transition-delay: 225ms; }
+.vc-delay-300 { transition-delay: 300ms; }
+.vc-delay-400 { transition-delay: 400ms; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * DURATION OVERRIDES
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.vc-duration-fast      { transition-duration: var(--duration-fast); }
+.vc-duration-normal    { transition-duration: var(--duration-normal); }
+.vc-duration-slow      { transition-duration: var(--duration-slow); }
+.vc-duration-deliberate { transition-duration: var(--duration-deliberate); }
+.vc-duration-reveal    { transition-duration: var(--duration-reveal); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * PAGE TRANSITIONS
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.vc-page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--duration-page) var(--ease-out),
+              transform var(--duration-page) var(--ease-out);
+}
+
+.vc-page-enter-active {
+  opacity: 1;
+  transform: none;
+}
+
+.vc-page-exit {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--duration-fast) var(--ease-in),
+              transform var(--duration-fast) var(--ease-in);
+}
+
+.vc-page-exit-active {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * PARALLAX LAYER
+ * Value of --vc-parallax-y is set by useParallax.js via inline style.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.vc-parallax {
+  transform: translateY(var(--vc-parallax-y, 0px));
+  will-change: transform;
+  transition: transform 0ms linear; /* intentionally instant for scroll sync */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * REDUCED MOTION — disable all
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-motion-fade,
+  .vc-motion-slide-up,
+  .vc-motion-slide-down,
+  .vc-motion-slide-left,
+  .vc-motion-slide-right,
+  .vc-motion-scale,
+  .vc-motion-blur,
+  .vc-motion-clip {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    clip-path: none;
+    transition: none;
+  }
+
+  .vc-page-enter,
+  .vc-page-exit {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .vc-parallax {
+    transform: none;
+    transition: none;
+  }
+}

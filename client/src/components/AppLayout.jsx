@@ -1,18 +1,27 @@
 import { Outlet } from 'react-router-dom';
-import { Navbar } from './Navbar';
-import { Footer } from './Footer';
+import { NavigationProvider, SiteNav, SiteBreadcrumb, SiteFooter } from '../navigation';
+import { PageTransition } from '../animations/PageTransition';
 import { Container } from './Container';
 
 export default function AppLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
-      <Navbar />
-      <main className="flex-1 py-8">
-        <Container>
-          <Outlet />
-        </Container>
-      </main>
-      <Footer />
-    </div>
+    <NavigationProvider>
+      <div className="min-h-screen flex flex-col bg-[--vc-bg-base] text-[--vc-text-primary]">
+        <SiteNav />
+        <main className="flex-1 py-8">
+          <Container>
+            <div className="mb-6">
+              <SiteBreadcrumb />
+            </div>
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
+          </Container>
+        </main>
+        <SiteFooter />
+      </div>
+    </NavigationProvider>
   );
 }
+
+

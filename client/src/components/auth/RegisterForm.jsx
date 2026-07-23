@@ -1,13 +1,18 @@
+/**
+ * RegisterForm.jsx
+ * Redesigned Register Form using AuthLayout, PasswordStrengthMeter, and Global UI primitives.
+ * Business logic and useAuth integration strictly preserved.
+ */
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import {
-  FormContainer,
-  Input,
-  PasswordInput,
-  SubmitButton,
-  ErrorBanner,
-} from './AuthFormComponents';
+import { AuthLayout } from './AuthLayout';
+import { PasswordInputEnhanced } from './PasswordInputEnhanced';
+import { PasswordStrengthMeter } from './PasswordStrengthMeter';
+import { Field } from '../../ui/form/Field';
+import { Input } from '../../ui/Input';
+import { Button } from '../../ui/Button';
+import { Alert } from '../../ui/Alert';
 
 export function RegisterForm() {
   const { register } = useAuth();
@@ -24,12 +29,15 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+    const { name, id, value, type, checked } = e.target;
+    const key = name || id;
+    const val = type === 'checkbox' ? checked : value;
+    setFormData((prev) => ({ ...prev, [key]: val }));
+    if (errors[key]) {
+      setErrors((prev) => ({ ...prev, [key]: '' }));
     }
   };
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -100,68 +108,96 @@ export function RegisterForm() {
   };
 
   return (
-    <FormContainer title="Create Account" subtitle="Register your MSME on VerifyChain">
-      <ErrorBanner message={serverError} />
-      <form onSubmit={handleSubmit} noValidate>
-        <Input
-          id="name"
-          label="Full Name"
-          placeholder="Ramesh Gupta"
-          value={formData.name}
-          onChange={handleChange}
-          error={errors.name}
-          required
-          disabled={loading}
-        />
-        <Input
-          id="email"
-          label="Email Address"
-          type="email"
-          placeholder="name@example.com"
-          value={formData.email}
-          onChange={handleChange}
-          error={errors.email}
-          required
-          disabled={loading}
-        />
-        <PasswordInput
-          id="password"
-          label="Password (min 8 chars)"
-          placeholder="••••••••"
-          value={formData.password}
-          onChange={handleChange}
-          error={errors.password}
-          required
-          disabled={loading}
-        />
-        <PasswordInput
-          id="confirmPassword"
-          label="Confirm Password"
-          placeholder="••••••••"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          error={errors.confirmPassword}
-          required
-          disabled={loading}
-        />
-        <Input
-          id="phone"
-          label="Mobile Phone Number (Optional)"
-          type="tel"
-          placeholder="9876543210"
-          value={formData.phone}
-          onChange={handleChange}
-          error={errors.phone}
-          disabled={loading}
-        />
-        <SubmitButton loading={loading}>Register Business</SubmitButton>
+    <AuthLayout
+      title="Register Enterprise Account"
+      subtitle="Create your MSME profile to aggregate compliance records and generate your Verified Supplier Card."
+    >
+      {serverError && (
+        <div className="mb-5">
+          <Alert variant="error" title="Registration Error">
+            {serverError}
+          </Alert>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <Field label="Full Name" htmlFor="name" required error={errors.name}>
+          <Input
+            id="name"
+            name="name"
+            placeholder="Ramesh Gupta"
+            value={formData.name}
+            onChange={handleChange}
+            error={errors.name}
+            disabled={loading}
+            required
+          />
+        </Field>
+
+        <Field label="Email Address" htmlFor="email" required error={errors.email}>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="ramesh@textiles.in"
+            value={formData.email}
+            onChange={handleChange}
+            error={errors.email}
+            disabled={loading}
+            required
+          />
+        </Field>
+
+        <Field label="Password" htmlFor="password" required error={errors.password}>
+          <PasswordInputEnhanced
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+            error={errors.password}
+            disabled={loading}
+          />
+          <PasswordStrengthMeter password={formData.password} />
+        </Field>
+
+        <Field label="Confirm Password" htmlFor="confirmPassword" required error={errors.confirmPassword}>
+          <PasswordInputEnhanced
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            placeholder="••••••••"
+            error={errors.confirmPassword}
+            disabled={loading}
+          />
+        </Field>
+
+        <Field label="Mobile Phone Number (Optional)" htmlFor="phone" error={errors.phone} hint="10-digit Indian mobile number for SMS expiry alerts">
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="9876543210"
+            value={formData.phone}
+            onChange={handleChange}
+            error={errors.phone}
+            disabled={loading}
+          />
+        </Field>
+
+        <Button type="submit" variant="primary" loading={loading} className="w-full mt-2 py-2.5">
+          Create Business Account
+        </Button>
       </form>
-      <div className="mt-6 text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link to="/login" className="font-medium text-brand hover:underline">
-          Sign in
+
+
+      <div className="mt-6 pt-5 border-t border-[--vc-border] text-center text-[--text-xs] text-[--vc-text-secondary]">
+        Already registered on VerifyChain?{' '}
+        <Link to="/login" className="font-semibold text-[--vc-brand] hover:underline">
+          Sign in to account
         </Link>
       </div>
-    </FormContainer>
+    </AuthLayout>
   );
 }
