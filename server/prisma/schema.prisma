@@ -15,6 +15,41 @@ enum UserRole {
   ADMIN
 }
 
+enum IntegrationStatus {
+  DRAFT
+  CONFIGURED
+  CONNECTED
+  ACTIVE
+  SUSPENDED
+  DISABLED
+  ARCHIVED
+}
+
+enum IntegrationType {
+  ERP
+  CRM
+  GOVERNMENT
+  OAUTH
+  WEBHOOK
+  PARTNER
+  CUSTOM
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  ROTATED
+  EXPIRED
+  REVOKED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRIED
+  PERMANENTLY_FAILED
+}
+
 enum BusinessType {
   MANUFACTURING
   SERVICES
@@ -542,4 +577,367 @@ model BuyerViewLog {
   @@index([msme_id])
   @@index([viewed_at])
   @@map("buyer_view_logs")
+}
+
+// ─── INTEGRATION PLATFORM (PHASE 8.1) ───────────────────────────
+
+model Integration {
+  id               Int               @id @default(autoincrement())
+  integration_id   String            @unique
+  name             String
+  description      String?
+  type             IntegrationType   @default(CUSTOM)
+  provider_code    String
+  version          String            @default("v1.0.0")
+  status           IntegrationStatus @default(DRAFT)
+  is_system        Boolean           @default(false)
+  capabilities     String[]          @default([])
+  metadata         Json?
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  configurations IntegrationConfiguration[]
+  connections    IntegrationConnection[]
+  events         IntegrationEventLog[]
+
+  @@index([provider_code])
+  @@index([type])
+  @@index([status])
+  @@map("integrations")
+}
+
+model IntegrationConfiguration {
+  id                Int      @id @default(autoincrement())
+  integration_id    Int
+  msme_id           Int?
+  environment       String   @default("PRODUCTION")
+  config_version    String   @default("v1.0.0")
+  base_url          String?
+  auth_type         String   @default("API_KEY")
+  settings_json     Json?
+  timeout_ms        Int      @default(10000)
+  retry_policy_json Json?
+  rate_limit_rpm    Int      @default(120)
+  is_enabled        Boolean  @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  integration Integration         @relation(fields: [integration_id], references: [id])
+  secrets     IntegrationSecret[]
+
+  @@index([integration_id])
+  @@index([msme_id])
+  @@map("integration_configurations")
+}
+
+model IntegrationSecret {
+  id                   Int      @id @default(autoincrement())
+  configuration_id     Int
+  secret_key           String
+  encrypted_value      String
+  encryption_algorithm String   @default("AES-256-GCM")
+  key_version          String   @default("v1")
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  configuration IntegrationConfiguration @relation(fields: [configuration_id], references: [id])
+
+  @@index([configuration_id])
+  @@map("integration_secrets")
+}
+
+model IntegrationConnection {
+  id                    Int               @id @default(autoincrement())
+  integration_id        Int
+  msme_id               Int
+  connection_identifier String            @unique
+  status                IntegrationStatus @default(CONFIGURED)
+  health_status         String            @default("HEALTHY")
+  last_connected_at     DateTime?
+  last_synced_at        DateTime?
+  error_message         String?
+  metadata              Json?
+  created_at            DateTime          @default(now())
+  updated_at            DateTime          @updatedAt
+
+  integration Integration @relation(fields: [integration_id], references: [id])
+
+  @@index([integration_id])
+  @@index([msme_id])
+  @@map("integration_connections")
+}
+
+model DeveloperApplication {
+  id          Int      @id @default(autoincrement())
+  msme_id     Int
+  app_id      String   @unique
+  name        String
+  description String?
+  environment String   @default("SANDBOX")
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  api_keys              ApiKey[]
+  webhook_subscriptions WebhookSubscription[]
+
+  @@index([msme_id])
+  @@index([app_id])
+  @@map("developer_applications")
+}
+
+model ApiKey {
+  id                Int          @id @default(autoincrement())
+  developer_app_id  Int
+  key_prefix        String
+  key_hash          String       @unique
+  name              String
+  environment       String       @default("PRODUCTION")
+  scopes            String[]     @default([])
+  status            ApiKeyStatus @default(ACTIVE)
+  expires_at        DateTime?
+  last_used_at      DateTime?
+  revoked_at        DateTime?
+  revocation_reason String?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  developer_app DeveloperApplication @relation(fields: [developer_app_id], references: [id])
+  usage_logs    ApiKeyUsage[]
+
+  @@index([developer_app_id])
+  @@index([key_hash])
+  @@index([status])
+  @@map("api_keys")
+}
+
+model ApiKeyUsage {
+  id               Int      @id @default(autoincrement())
+  api_key_id       Int
+  endpoint         String
+  http_method      String
+  status_code      Int
+  response_time_ms Float
+  request_ip       String?
+  user_agent       String?
+  created_at       DateTime @default(now())
+
+  api_key ApiKey @relation(fields: [api_key_id], references: [id])
+
+  @@index([api_key_id])
+  @@index([created_at])
+  @@map("api_key_usage")
+}
+
+model WebhookSubscription {
+  id                Int      @id @default(autoincrement())
+  developer_app_id  Int
+  subscription_id   String   @unique
+  target_url        String
+  subscribed_events String[] @default([])
+  secret_hash       String
+  is_active         Boolean  @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  developer_app DeveloperApplication @relation(fields: [developer_app_id], references: [id])
+  deliveries    WebhookDelivery[]
+
+  @@index([developer_app_id])
+  @@index([subscription_id])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id              Int                   @id @default(autoincrement())
+  subscription_id Int
+  event_type      String
+  event_id        String
+  payload_json    Json
+  status          WebhookDeliveryStatus @default(PENDING)
+  attempt_count   Int                   @default(0)
+  next_retry_at   DateTime?
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @updatedAt
+
+  subscription WebhookSubscription @relation(fields: [subscription_id], references: [id])
+  attempts     WebhookAttempt[]
+
+  @@index([subscription_id])
+  @@index([status])
+  @@map("webhook_deliveries")
+}
+
+model WebhookAttempt {
+  id                Int      @id @default(autoincrement())
+  delivery_id       Int
+  response_status   Int?
+  response_body     String?
+  execution_time_ms Float
+  error_message     String?
+  attempted_at      DateTime @default(now())
+
+  delivery WebhookDelivery @relation(fields: [delivery_id], references: [id])
+
+  @@index([delivery_id])
+  @@map("webhook_attempts")
+}
+
+model IntegrationEventLog {
+  id             Int      @id @default(autoincrement())
+  integration_id Int?
+  event_type     String
+  event_source   String   @default("VERIFYCHAIN_INTERNAL")
+  correlation_id String
+  payload_json   Json
+  created_at     DateTime @default(now())
+
+  integration Integration? @relation(fields: [integration_id], references: [id])
+
+  @@index([integration_id])
+  @@index([event_type])
+  @@index([correlation_id])
+  @@map("integration_event_logs")
+}
+
+model IntegrationAuditLog {
+  id            Int      @id @default(autoincrement())
+  actor_type    String   @default("SYSTEM")
+  actor_id      String
+  action        String
+  resource_type String
+  resource_id   String
+  changes_json  Json?
+  ip_address    String?
+  user_agent    String?
+  created_at    DateTime @default(now())
+
+  @@index([action])
+  @@index([resource_type, resource_id])
+  @@index([created_at])
+  @@map("integration_audit_logs")
+}
+
+model DeveloperWorkspace {
+  id          Int      @id @default(autoincrement())
+  msme_id     Int
+  name        String
+  environment String   @default("PRODUCTION")
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([msme_id])
+  @@map("developer_workspaces")
+}
+
+model SavedFilter {
+  id               Int      @id @default(autoincrement())
+  msme_id          Int
+  developer_app_id Int?
+  name             String
+  category         String   @default("GLOBAL")
+  filter_json      Json
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([msme_id])
+  @@index([category])
+  @@map("saved_filters")
+}
+
+model DashboardPreference {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int      @unique
+  theme              String   @default("LIGHT")
+  default_view       String   @default("OVERVIEW")
+  widget_config_json Json?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@map("dashboard_preferences")
+}
+
+model APIUsageSummary {
+  id                  Int      @id @default(autoincrement())
+  developer_app_id    Int
+  date                DateTime
+  total_requests      Int      @default(0)
+  successful_requests Int      @default(0)
+  failed_requests     Int      @default(0)
+  avg_latency_ms      Float    @default(0.0)
+  peak_rpm            Int      @default(0)
+  created_at          DateTime @default(now())
+
+  @@index([developer_app_id])
+  @@index([date])
+  @@map("api_usage_summaries")
+}
+
+model SecurityAlert {
+  id            Int       @id @default(autoincrement())
+  msme_id       Int
+  alert_type    String
+  severity      String    @default("MEDIUM")
+  title         String
+  description   String
+  metadata_json Json?
+  is_resolved   Boolean   @default(false)
+  resolved_at   DateTime?
+  created_at    DateTime  @default(now())
+
+  @@index([msme_id])
+  @@index([severity])
+  @@index([is_resolved])
+  @@map("security_alerts")
+}
+
+model ConnectorPreference {
+  id                     Int      @id @default(autoincrement())
+  integration_id         Int
+  msme_id                Int
+  sync_schedule_cron     String?
+  auto_resolve_conflicts Boolean  @default(false)
+  settings_json          Json?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  @@index([integration_id, msme_id])
+  @@map("connector_preferences")
+}
+
+model RecentActivity {
+  id            Int      @id @default(autoincrement())
+  msme_id       Int
+  activity_type String
+  description   String
+  metadata_json Json?
+  created_at    DateTime @default(now())
+
+  @@index([msme_id])
+  @@index([created_at])
+  @@map("recent_activities")
+}
+
+model AuditBookmark {
+  id           Int      @id @default(autoincrement())
+  msme_id      Int
+  audit_log_id Int
+  note         String?
+  created_at   DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("audit_bookmarks")
+}
+
+model NotificationPreference {
+  id                     Int      @id @default(autoincrement())
+  msme_id                Int      @unique
+  email_alerts           Boolean  @default(true)
+  security_alerts        Boolean  @default(true)
+  webhook_failures_alert Boolean  @default(true)
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  @@map("notification_preferences")
 }

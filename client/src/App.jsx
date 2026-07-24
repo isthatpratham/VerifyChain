@@ -20,6 +20,7 @@ import { EmbeddableTrustWidget } from './components/public/EmbeddableTrustWidget
 import { EmbeddableTrustBadge } from './components/public/EmbeddableTrustBadge';
 import { SupplierTrustPage } from './pages/SupplierTrustPage';
 import { TrustDistributionPage } from './pages/TrustDistributionPage';
+import { DeveloperPlatformPage } from './pages/DeveloperPlatformPage';
 import NotFound from './pages/NotFound';
 
 import Login from './pages/Login';
@@ -125,6 +126,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <TrustDistributionPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="developer"
+                element={
+                  <ProtectedRoute>
+                    <DeveloperPlatformPage />
                   </ProtectedRoute>
                 }
               />

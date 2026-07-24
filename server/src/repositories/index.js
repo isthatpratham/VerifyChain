@@ -7,6 +7,13 @@ const governmentSchemeRepository = require('./governmentScheme.repository');
 const schemeMatchRepository = require('./schemeMatch.repository');
 const buyerViewLogRepository = require('./buyerViewLog.repository');
 
+const integrationRepository = require('./integration.repository');
+const integrationConfigRepository = require('./integrationConfig.repository');
+const developerAppRepository = require('./developerApp.repository');
+const apiKeyRepository = require('./apiKey.repository');
+const webhookSubscriptionRepository = require('./webhookSubscription.repository');
+const integrationAuditRepository = require('./integrationAudit.repository');
+
 module.exports = {
   userRepository,
   msmeProfileRepository,
@@ -16,4 +23,11 @@ module.exports = {
   governmentSchemeRepository,
   schemeMatchRepository,
   buyerViewLogRepository,
+
+  integrationRepository,
+  integrationConfigRepository,
+  developerAppRepository,
+  apiKeyRepository,
+  webhookSubscriptionRepository,
+  integrationAuditRepository,
 };

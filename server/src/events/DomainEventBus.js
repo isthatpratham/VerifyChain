@@ -80,6 +80,7 @@ class DomainEventBus extends EventEmitter {
 
     console.log(`[DomainEventBus] Published Event: ${eventName} @ ${timestamp}`);
     this.emit(eventName, eventObject);
+    this.emit('*', eventName, payload);
   }
 
   /**
@@ -90,6 +91,15 @@ class DomainEventBus extends EventEmitter {
   subscribe(eventName, handler) {
     this.on(eventName, handler);
     return () => this.off(eventName, handler);
+  }
+
+  /**
+   * Subscribe a handler to all published domain events
+   * @param {Function} handler - Callback handler function (eventName, payload)
+   */
+  subscribeAll(handler) {
+    this.on('*', handler);
+    return () => this.off('*', handler);
   }
 }
 

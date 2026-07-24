@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Article,
   User,
+  Code,
 } from '@phosphor-icons/react';
 
 const NAV_SECTIONS = [
@@ -43,6 +44,12 @@ const NAV_SECTIONS = [
     items: [
       { to: '/supplier-trust', label: 'Supplier Trust', icon: ShieldCheck },
       { to: '/trust-distribution', label: 'Trust Distribution', icon: Broadcast },
+    ],
+  },
+  {
+    group: 'DEVELOPER',
+    items: [
+      { to: '/developer', label: 'Developer Platform', icon: Code },
     ],
   },
 ];
