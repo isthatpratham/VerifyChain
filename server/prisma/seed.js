@@ -346,6 +346,44 @@ async function main() {
     });
   }
 
+  // 11. Seed Health Score Categories & Initial Config
+  const categories = [
+    { category_code: 'TAX', category_name: 'Tax Compliance', description: 'Goods & Services Tax (GST) returns and statutory settlements.', default_weight: 1.0 },
+    { category_code: 'LABOUR', category_name: 'Labour & Social Security', description: 'Employees Provident Fund (EPFO) and ESIC statutory contributions.', default_weight: 1.0 },
+    { category_code: 'CORPORATE', category_name: 'Corporate Compliance', description: 'Ministry of Corporate Affairs (MCA) annual returns and disclosures.', default_weight: 1.0 },
+    { category_code: 'LICENSING', category_name: 'Licensing & Registrations', description: 'Udyam MSME certification and FSSAI Food Safety licenses.', default_weight: 1.0 },
+  ];
+
+  for (const cat of categories) {
+    await prisma.scoreCategory.upsert({
+      where: { category_code: cat.category_code },
+      update: cat,
+      create: cat,
+    });
+  }
+
+  await prisma.healthScoreConfig.upsert({
+    where: { config_version: 'v1.0.0' },
+    update: {},
+    create: {
+      config_version: 'v1.0.0',
+      max_score: 100,
+      min_score: 0,
+      category_definitions: {
+        categories: ['TAX', 'LABOUR', 'CORPORATE', 'LICENSING'],
+      },
+      penalty_rules: {
+        overdue_deduction: 15,
+        due_deduction: 5,
+      },
+      bonus_rules: {
+        perfect_compliance_bonus: 5,
+      },
+      status: 'ACTIVE',
+      effective_date: new Date(),
+    },
+  });
+
   console.log('Seed completed successfully.');
 
 }

@@ -3,6 +3,7 @@ const router = express.Router();
 const complianceController = require('../controllers/compliance.controller');
 const rulesEngineController = require('../controllers/rulesEngine.controller');
 const orchestrationController = require('../controllers/orchestration.controller');
+const healthIntelligenceController = require('../controllers/healthIntelligence.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const {
   createComplianceValidationRules,
@@ -13,6 +14,28 @@ const {
 
 // All compliance routes require JWT authentication
 router.use(authenticate);
+
+// Health Intelligence & Scoring Engine Endpoints
+router.post('/health/calculate', healthIntelligenceController.calculateScore);
+router.get('/health/current', healthIntelligenceController.getCurrentScore);
+router.get('/health/breakdown', healthIntelligenceController.getCategoryBreakdown);
+
+// Insights Engine Endpoints
+router.get('/health/insights', healthIntelligenceController.getFullIntelligence);
+router.get('/health/insights/risk', healthIntelligenceController.getRiskAnalysis);
+router.get('/health/insights/strengths-weaknesses', healthIntelligenceController.getStrengthsWeaknesses);
+router.get('/health/insights/recommendations', healthIntelligenceController.getRecommendations);
+router.get('/health/insights/summary', healthIntelligenceController.getExecutiveSummary);
+
+// Automation & Event Orchestration Endpoints
+router.post('/health/automation/re-evaluate', healthIntelligenceController.triggerAutomationRecalculation);
+router.get('/health/automation/dependency-graph', healthIntelligenceController.getDependencyGraph);
+router.get('/health/automation/metrics', healthIntelligenceController.getAutomationMetrics);
+
+router.get('/health/config', healthIntelligenceController.getConfig);
+router.get('/health/categories', healthIntelligenceController.getCategories);
+router.get('/health/snapshots', healthIntelligenceController.getSnapshots);
+router.get('/health/metadata', healthIntelligenceController.getMetadata);
 
 // Orchestration Layer Endpoints
 router.post('/orchestrate/sync', orchestrationController.syncCompliance);

@@ -131,13 +131,14 @@ model MsmeProfile {
   created_at           DateTime     @default(now())
   updated_at           DateTime     @updatedAt
 
-  user                 User                @relation(fields: [user_id], references: [id])
-  compliance_records   ComplianceRecord[]
-  documents            Document[]
-  alerts               Alert[]
-  scheme_matches       SchemeMatch[]
-  buyer_view_logs      BuyerViewLog[]
-  rule_evaluation_logs RuleEvaluationLog[]
+  user                  User                   @relation(fields: [user_id], references: [id])
+  compliance_records    ComplianceRecord[]
+  documents             Document[]
+  alerts                Alert[]
+  scheme_matches        SchemeMatch[]
+  buyer_view_logs       BuyerViewLog[]
+  rule_evaluation_logs  RuleEvaluationLog[]
+  health_score_snapshots HealthScoreSnapshot[]
 
   @@index([gstin])
   @@index([udyam_number])
@@ -224,6 +225,59 @@ model RuleEvaluationLog {
   @@index([rule_id])
   @@index([evaluated_at])
   @@map("rule_evaluation_logs")
+}
+
+// ─── HEALTH SCORE CONFIGURATIONS ────────────────────────────────
+
+model HealthScoreConfig {
+  id                   Int        @id @default(autoincrement())
+  config_version       String     @unique
+  max_score            Int        @default(100)
+  min_score            Int        @default(0)
+  category_definitions Json
+  penalty_rules        Json
+  bonus_rules          Json
+  status               RuleStatus @default(ACTIVE)
+  effective_date       DateTime   @default(now())
+  expiry_date          DateTime?
+  created_at           DateTime   @default(now())
+  updated_at           DateTime   @updatedAt
+
+  @@map("health_score_configs")
+}
+
+// ─── SCORE CATEGORIES ────────────────────────────────────────────
+
+model ScoreCategory {
+  id             Int      @id @default(autoincrement())
+  category_code  String   @unique
+  category_name  String
+  description    String
+  default_weight Float    @default(1.0)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+
+  @@map("score_categories")
+}
+
+// ─── HEALTH SCORE SNAPSHOTS ─────────────────────────────────────
+
+model HealthScoreSnapshot {
+  id                      Int       @id @default(autoincrement())
+  msme_id                 Int
+  config_version          String
+  overall_score           Float?
+  risk_level              RiskLevel @default(LOW)
+  category_breakdown      Json?
+  recommendations_snapshot Json?
+  evaluated_at            DateTime  @default(now())
+  engine_version          String    @default("1.0.0")
+
+  msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
+
+  @@index([msme_id])
+  @@index([evaluated_at])
+  @@map("health_score_snapshots")
 }
 
 // ─── DOCUMENTS ──────────────────────────────────────────────────

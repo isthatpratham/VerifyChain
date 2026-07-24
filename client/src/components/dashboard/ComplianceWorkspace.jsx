@@ -1,7 +1,7 @@
 /**
  * ComplianceWorkspace.jsx
  * Enterprise Compliance Workspace component.
- * Central workspace for monitoring compliance status, explanations, search, filtering,
+ * Central workspace for monitoring compliance health intelligence, status, explanations, search, filtering,
  * Compliance Intelligence Workspace integration, Timeline & Planning Workspace,
  * and executing Rules Engine evaluations.
  */
@@ -20,6 +20,7 @@ import {
   Article,
   CalendarBlank,
   Table as TableIcon,
+  Heartbeat,
 } from '@phosphor-icons/react';
 import { useCompliance } from '../../hooks/useCompliance';
 import { useMsmeProfile } from '../../hooks/useMsmeProfile';
@@ -30,6 +31,7 @@ import { Alert } from '../../ui/Alert';
 import { RuleExplanationModal } from './RuleExplanationModal';
 import { ComplianceIntelligenceModal } from './ComplianceIntelligenceModal';
 import { ComplianceTimelineWorkspace } from './ComplianceTimelineWorkspace';
+import { ComplianceHealthWorkspace } from './ComplianceHealthWorkspace';
 
 export function ComplianceWorkspace() {
   const {
@@ -45,7 +47,7 @@ export function ComplianceWorkspace() {
 
   const { profile } = useMsmeProfile();
 
-  const [activeTab, setActiveTab] = useState('RECORDS'); // 'RECORDS' or 'TIMELINE'
+  const [activeTab, setActiveTab] = useState('HEALTH'); // 'HEALTH', 'RECORDS', or 'TIMELINE'
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -132,6 +134,19 @@ export function ComplianceWorkspace() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setActiveTab('HEALTH')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-[--radius-sm] text-[--text-xs] font-bold transition-colors ${
+              activeTab === 'HEALTH'
+                ? 'bg-[--vc-brand] text-white shadow-sm'
+                : 'text-[--vc-text-secondary] hover:text-[--vc-text-primary]'
+            }`}
+          >
+            <Heartbeat size={16} />
+            <span>Compliance Health Workspace</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('RECORDS')}
             className={`flex items-center gap-2 px-4 py-2 rounded-[--radius-sm] text-[--text-xs] font-bold transition-colors ${
               activeTab === 'RECORDS'
@@ -168,7 +183,10 @@ export function ComplianceWorkspace() {
         </Alert>
       )}
 
-      {/* TAB 1: STATUTORY RECORDS WORKSPACE */}
+      {/* TAB 1: COMPLIANCE HEALTH INTELLIGENCE WORKSPACE */}
+      {activeTab === 'HEALTH' && <ComplianceHealthWorkspace />}
+
+      {/* TAB 2: STATUTORY RECORDS WORKSPACE */}
       {activeTab === 'RECORDS' && (
         <>
           {/* Overview Metrics Grid */}
@@ -359,7 +377,7 @@ export function ComplianceWorkspace() {
         </>
       )}
 
-      {/* TAB 2: TIMELINE & PLANNING WORKSPACE */}
+      {/* TAB 3: TIMELINE & PLANNING WORKSPACE */}
       {activeTab === 'TIMELINE' && (
         <ComplianceTimelineWorkspace
           records={records}
