@@ -1,5 +1,13 @@
+/**
+ * BusinessVerificationCard.jsx
+ * Enterprise Registration Verification Operations Card (GSTIN, PAN, Udyam).
+ * Preserves all existing hook integration with useBusinessVerification.
+ */
 import { useState, useEffect } from 'react';
 import { useBusinessVerification } from '../../hooks/useBusinessVerification';
+import { ShieldCheck, CheckCircle, ArrowClockwise, Code } from '@phosphor-icons/react';
+import { Button } from '../../ui/Button';
+import { Alert } from '../../ui/Alert';
 
 export function BusinessVerificationCard({ profile }) {
   const { statusData, loading, error, fetchStatus, runGstinVerification, runPanVerification, runUdyamVerification } =
@@ -12,7 +20,7 @@ export function BusinessVerificationCard({ profile }) {
   useEffect(() => {
     if (profile) {
       fetchStatus();
-      if (profile.gstin) {
+      if (profile.gstin && profile.gstin.length >= 12) {
         setCustomPan(profile.gstin.substring(2, 12));
       }
     }
@@ -54,91 +62,110 @@ export function BusinessVerificationCard({ profile }) {
   if (!profile) return null;
 
   return (
-    <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-gray-200">
+    <div className="mt-8 p-6 sm:p-8 rounded-[--radius-md] border border-[--vc-border] bg-[--vc-surface-raised]">
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-[--vc-border] gap-4">
         <div>
-          <h3 className="text-xl font-bold text-gray-900">Business Registration Verification</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Validate GSTIN, PAN, and Udyam credentials with government database records.
+          <div className="flex items-center gap-2 mb-0.5">
+            <ShieldCheck size={20} className="text-[--vc-brand]" />
+            <h3 className="font-[--font-heading] text-[--text-lg] font-bold text-[--vc-text-primary]">
+              Business Registration Verification Operations
+            </h3>
+          </div>
+          <p className="text-[--text-xs] text-[--vc-text-secondary]">
+            Validate GSTIN, PAN, and Udyam credentials directly against government database records.
           </p>
         </div>
-        <div className="mt-2 sm:mt-0 flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500">Overall Status:</span>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-            {statusData?.verificationStatus || 'VERIFIED'}
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[--text-xs] font-medium text-[--vc-text-tertiary]">Overall Standing:</span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text] text-[11px] font-semibold border border-[--color-success-100]">
+            <CheckCircle size={13} className="text-[--vc-success]" />
+            <span>{statusData?.verificationStatus || 'VERIFIED'}</span>
           </span>
         </div>
       </div>
 
+      {/* Messages */}
       {verifyMsg && (
-        <div
-          className={`mt-4 p-3 rounded-lg text-sm font-medium ${
-            verifyMsg.type === 'success'
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {verifyMsg.text}
+        <div className="mt-4">
+          <Alert variant={verifyMsg.type === 'success' ? 'success' : 'error'} title="Verification Result">
+            {verifyMsg.text}
+          </Alert>
         </div>
       )}
 
       {error && (
-        <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-800 text-sm border border-red-200">
-          {error}
+        <div className="mt-4">
+          <Alert variant="error" title="Verification Engine Error">
+            {error}
+          </Alert>
         </div>
       )}
 
-      <div className="flex border-b border-gray-200 mt-6 text-sm font-medium">
+      {/* Tab Controls */}
+      <div className="flex border-b border-[--vc-border] mt-6 text-[--text-xs] font-medium gap-4">
         <button
+          type="button"
           onClick={() => setActiveTab('summary')}
-          className={`pb-2 px-4 border-b-2 ${
+          className={`pb-2.5 px-2 border-b-2 font-semibold transition-colors ${
             activeTab === 'summary'
-              ? 'border-brand text-brand font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-[--vc-brand] text-[--vc-brand]'
+              : 'border-transparent text-[--vc-text-tertiary] hover:text-[--vc-text-primary]'
           }`}
         >
-          Overview & Verification
+          Verification Cards
         </button>
+
         <button
+          type="button"
           onClick={() => setActiveTab('details')}
-          className={`pb-2 px-4 border-b-2 ${
+          className={`pb-2.5 px-2 border-b-2 font-semibold transition-colors flex items-center gap-1 ${
             activeTab === 'details'
-              ? 'border-brand text-brand font-semibold'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-[--vc-brand] text-[--vc-brand]'
+              : 'border-transparent text-[--vc-text-tertiary] hover:text-[--vc-text-primary]'
           }`}
         >
-          Detailed Metadata
+          <Code size={14} />
+          <span>Raw Registry JSON</span>
         </button>
       </div>
 
+      {/* Tab Panels */}
       {activeTab === 'summary' ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+
           {/* GSTIN Card */}
-          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col justify-between">
+          <div className="p-4 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">GSTIN</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 text-green-800">
+                <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase tracking-wider">GSTIN Verification</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text]">
                   VERIFIED
                 </span>
               </div>
-              <p className="font-mono text-sm text-gray-900 font-semibold">{profile.gstin}</p>
+              <p className="font-mono text-[--text-xs] font-bold text-[--vc-text-primary] mb-1">{profile.gstin}</p>
             </div>
-            <button
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={loading}
               onClick={handleVerifyGstin}
-              disabled={loading}
-              className="mt-4 w-full py-1.5 px-3 text-xs font-medium text-brand bg-white border border-brand rounded-lg hover:bg-brand/5 disabled:opacity-50"
+              icon={<ArrowClockwise size={13} />}
+              className="mt-4 w-full text-[11px]"
             >
               Re-Verify GSTIN
-            </button>
+            </Button>
           </div>
 
           {/* PAN Card */}
-          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col justify-between">
+          <div className="p-4 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">PAN</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 text-green-800">
+                <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase tracking-wider">PAN Verification</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text]">
                   VERIFIED
                 </span>
               </div>
@@ -147,40 +174,51 @@ export function BusinessVerificationCard({ profile }) {
                 value={customPan}
                 onChange={(e) => setCustomPan(e.target.value.toUpperCase())}
                 maxLength={10}
-                className="font-mono text-sm text-gray-900 font-semibold bg-white border border-gray-300 rounded px-2 py-1 w-full"
+                className="font-mono text-[--text-xs] font-bold text-[--vc-text-primary] bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-sm] px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-[--vc-brand]"
               />
             </div>
-            <button
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={loading}
               onClick={handleVerifyPan}
-              disabled={loading}
-              className="mt-4 w-full py-1.5 px-3 text-xs font-medium text-brand bg-white border border-brand rounded-lg hover:bg-brand/5 disabled:opacity-50"
+              icon={<ArrowClockwise size={13} />}
+              className="mt-4 w-full text-[11px]"
             >
               Verify PAN
-            </button>
+            </Button>
           </div>
 
           {/* Udyam Card */}
-          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex flex-col justify-between">
+          <div className="p-4 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">UDYAM</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 text-green-800">
+                <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase tracking-wider">UDYAM Verification</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text]">
                   VERIFIED
                 </span>
               </div>
-              <p className="font-mono text-sm text-gray-900 font-semibold">{profile.udyamNumber}</p>
+              <p className="font-mono text-[--text-xs] font-bold text-[--vc-text-primary] mb-1">{profile.udyamNumber}</p>
             </div>
-            <button
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              loading={loading}
               onClick={handleVerifyUdyam}
-              disabled={loading}
-              className="mt-4 w-full py-1.5 px-3 text-xs font-medium text-brand bg-white border border-brand rounded-lg hover:bg-brand/5 disabled:opacity-50"
+              icon={<ArrowClockwise size={13} />}
+              className="mt-4 w-full text-[11px]"
             >
               Re-Verify Udyam
-            </button>
+            </Button>
           </div>
+
         </div>
       ) : (
-        <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs font-mono overflow-x-auto">
+        <div className="mt-6 bg-[--vc-bg-base] p-4 rounded-[--radius-sm] border border-[--vc-border] text-[11px] font-mono text-[--vc-text-secondary] overflow-x-auto">
           <pre>{JSON.stringify(statusData?.details || {}, null, 2)}</pre>
         </div>
       )}

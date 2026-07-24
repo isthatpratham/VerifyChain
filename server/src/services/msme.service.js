@@ -1,5 +1,7 @@
 const { msmeProfileRepository } = require('../repositories');
 const { DuplicateError, NotFoundError, ValidationError } = require('../utils/dbErrors');
+const complianceOrchestratorService = require('./complianceOrchestrator.service');
+const businessEventDispatcher = require('../events/BusinessEventDispatcher');
 
 class MsmeService {
   async createProfile(userId, profileData) {
@@ -36,7 +38,31 @@ class MsmeService {
 
     console.log(`[MsmeService] Business profile created for user ${userId} (MSME ID: ${newProfile.id})`);
 
-    // Simulated compliance fetcher side-effect will be wired in Phase 3.2
+    // Synchronize Compliance Rules & Events
+    try {
+      await complianceOrchestratorService.synchronizeCompliance(newProfile.id);
+      businessEventDispatcher.emitBusinessEvent(businessEventDispatcher.EVENTS.BUSINESS_CREATED, {
+        msmeId: newProfile.id,
+      });
+    } catch (ruleErr) {
+      console.warn(`[MsmeService] Orchestration synchronization warning for MSME ID ${newProfile.id}: ${ruleErr.message}`);
+    }
+
+    // Automatic Trust & Distribution Downstream Lifecycle Trigger
+    try {
+      const supplierTrustService = require('./supplierTrust.service');
+      const trustDistributionService = require('./trustDistribution.service');
+
+      await supplierTrustService.getOrCreateTrustProfile(newProfile.id);
+      await supplierTrustService.evaluateTrust(newProfile.id);
+      await trustDistributionService.getOrCreateDistributionIdentity(newProfile.id);
+      await trustDistributionService.generateTrustAssets(newProfile.id);
+
+      console.log(`[MsmeService] Auto-initialized full Trust & Distribution lifecycle for MSME ID ${newProfile.id}`);
+    } catch (lifecycleErr) {
+      console.warn(`[MsmeService] Trust lifecycle auto-init notice for MSME ID ${newProfile.id}: ${lifecycleErr.message}`);
+    }
+
     return {
       msmeProfile: {
         id: newProfile.id,
@@ -44,7 +70,7 @@ class MsmeService {
         gstin: newProfile.gstin,
         isProfileComplete: newProfile.is_profile_complete,
       },
-      message: 'Profile created. Compliance data is being fetched.',
+      message: 'Profile created. Compliance rules evaluated & trust published automatically.',
     };
   }
 
@@ -92,6 +118,8 @@ class MsmeService {
     }
 
     const updateData = {};
+    const changedFields = Object.keys(updateFields);
+
     if (updateFields.businessName !== undefined) updateData.business_name = updateFields.businessName;
     if (updateFields.gstin !== undefined) updateData.gstin = updateFields.gstin;
     if (updateFields.udyamNumber !== undefined) updateData.udyam_number = updateFields.udyamNumber;
@@ -110,6 +138,33 @@ class MsmeService {
     const updatedProfile = await msmeProfileRepository.update({ id: profile.id }, updateData);
 
     console.log(`[MsmeService] Business profile updated for MSME ID ${profile.id}`);
+
+    // Selective re-evaluation trigger via Orchestration Layer
+    try {
+      await complianceOrchestratorService.handleBusinessUpdated(updatedProfile.id, changedFields);
+      businessEventDispatcher.emitBusinessEvent(businessEventDispatcher.EVENTS.BUSINESS_UPDATED, {
+        msmeId: updatedProfile.id,
+        changedFields,
+      });
+    } catch (ruleErr) {
+      console.warn(`[MsmeService] Orchestration re-evaluation warning for MSME ID ${updatedProfile.id}: ${ruleErr.message}`);
+    }
+
+    // Synchronize Trust Profile & Distribution Identity on profile update
+    try {
+      const supplierTrustService = require('./supplierTrust.service');
+      const trustDistributionService = require('./trustDistribution.service');
+
+      const trustProfile = await supplierTrustService.getOrCreateTrustProfile(updatedProfile.id);
+      if (updateFields.businessName) {
+        const supplierTrustProfileRepository = require('../repositories/supplierTrustProfile.repository');
+        await supplierTrustProfileRepository.update({ id: trustProfile.id }, { display_name: updatedProfile.business_name });
+      }
+      await supplierTrustService.evaluateTrust(updatedProfile.id);
+      await trustDistributionService.generateTrustAssets(updatedProfile.id);
+    } catch (syncErr) {
+      console.warn(`[MsmeService] Trust lifecycle update sync notice for MSME ID ${updatedProfile.id}: ${syncErr.message}`);
+    }
 
     return {
       id: updatedProfile.id,

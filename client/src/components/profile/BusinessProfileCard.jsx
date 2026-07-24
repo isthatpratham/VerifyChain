@@ -1,80 +1,93 @@
+/**
+ * BusinessProfileCard.jsx
+ * Enterprise MSME Profile Overview Card.
+ */
+import { Buildings, PencilSimple, MapPin, Users } from '@phosphor-icons/react';
+
+import { Button } from '../../ui/Button';
+
 export function BusinessProfileCard({ profile, onEdit }) {
   if (!profile) return null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-gray-200 gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-gray-900">{profile.businessName}</h2>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Active Profile
-            </span>
+    <div className="p-6 sm:p-8 rounded-[--radius-md] border border-[--vc-border] bg-[--vc-surface-raised] mb-8">
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-[--vc-border] gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base] flex items-center justify-center text-[--vc-brand]">
+            <Buildings size={22} />
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            {profile.sector} · {profile.district}, {profile.state}
-          </p>
+          <div>
+            <h2 className="font-[--font-heading] text-[--text-xl] font-bold text-[--vc-text-primary]">
+              {profile.businessName}
+            </h2>
+            <p className="text-[--text-xs] text-[--vc-text-secondary] mt-0.5">
+              {profile.businessType} • {profile.sector}
+            </p>
+          </div>
         </div>
+
         {onEdit && (
-          <button
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             onClick={onEdit}
-            className="px-4 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 focus:outline-none transition-colors"
+            icon={<PencilSimple size={14} />}
           >
             Edit Profile
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
-        <div>
-          <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            GSTIN
+      {/* Identifiers Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <div className="p-3.5 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base]">
+          <span className="text-[10px] font-semibold text-[--vc-text-tertiary] uppercase tracking-wider block">
+            GSTIN Identifier
           </span>
-          <span className="block text-sm font-medium text-gray-900 mt-1 font-mono">
+          <span className="font-mono text-[--text-sm] font-bold text-[--vc-text-primary] block mt-1">
             {profile.gstin}
           </span>
         </div>
-        <div>
-          <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Udyam Number
+
+        <div className="p-3.5 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base]">
+          <span className="text-[10px] font-semibold text-[--vc-text-tertiary] uppercase tracking-wider block">
+            Udyam Reg. Number
           </span>
-          <span className="block text-sm font-medium text-gray-900 mt-1 font-mono">
+          <span className="font-mono text-[--text-sm] font-bold text-[--vc-text-primary] block mt-1">
             {profile.udyamNumber}
           </span>
         </div>
-        <div>
-          <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Business Type
-          </span>
-          <span className="block text-sm font-medium text-gray-900 mt-1">
-            {profile.businessType}
+
+        <div className="p-3.5 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base]">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[--vc-text-tertiary] uppercase tracking-wider">
+            <MapPin size={12} className="text-[--vc-brand]" />
+            <span>Jurisdiction</span>
+          </div>
+          <span className="text-[--text-sm] font-semibold text-[--vc-text-primary] block mt-1">
+            {profile.district}, {profile.state}
           </span>
         </div>
-        <div>
-          <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Employees
-          </span>
-          <span className="block text-sm font-medium text-gray-900 mt-1">
+
+        <div className="p-3.5 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base]">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[--vc-text-tertiary] uppercase tracking-wider">
+            <Users size={12} className="text-[--vc-brand]" />
+            <span>Workforce</span>
+          </div>
+          <span className="text-[--text-sm] font-semibold text-[--vc-text-primary] block mt-1">
             {profile.employeeCount} Members
           </span>
         </div>
-        <div>
-          <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Annual Turnover
-          </span>
-          <span className="block text-sm font-medium text-gray-900 mt-1">
-            {profile.annualTurnoverLakh !== null ? `₹ ${profile.annualTurnoverLakh} Lakhs` : 'N/A'}
-          </span>
-        </div>
-        <div>
-          <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Food Business
-          </span>
-          <span className="block text-sm font-medium text-gray-900 mt-1">
-            {profile.isFoodBusiness ? 'Yes (FSSAI Applicable)' : 'No'}
-          </span>
-        </div>
       </div>
+
+      {/* Address Details */}
+      {profile.address && (
+        <div className="mt-4 pt-4 border-t border-[--vc-border] text-[--text-xs] text-[--vc-text-secondary]">
+          <span className="font-semibold text-[--vc-text-primary]">Registered Operating Address: </span>
+          <span>{profile.address}, {profile.pincode}</span>
+        </div>
+      )}
     </div>
   );
 }

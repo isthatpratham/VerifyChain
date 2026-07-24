@@ -32,6 +32,35 @@ enum ComplianceStatus {
   UNKNOWN
 }
 
+enum CompliancePriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RenewalFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+  ONE_TIME
+}
+
+enum RiskLevel {
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+enum RuleStatus {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+  ARCHIVED
+}
+
 enum AlertStatus {
   PENDING
   SENT
@@ -62,6 +91,47 @@ enum AuthorityType {
   MCA
   UDYAM
   FSSAI
+}
+
+enum TrustLevel {
+  PENDING
+  VERIFIED
+  TRUSTED
+  HIGHLY_TRUSTED
+  ENTERPRISE_TRUSTED
+  SUSPENDED
+  EXPIRED
+  REVOKED
+}
+
+enum VerificationState {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+  SUSPENDED
+  REVOKED
+  ARCHIVED
+}
+
+enum DistributionChannel {
+  QR_CODE
+  TRUST_CARD
+  CERTIFICATE
+  EMBED_BADGE
+  WIDGET
+  PUBLIC_LINK
+  MOBILE_WALLET
+}
+
+enum DistributionStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  REVOKED
+  ARCHIVED
 }
 
 // ─── USERS ──────────────────────────────────────────────────────
@@ -102,39 +172,277 @@ model MsmeProfile {
   created_at           DateTime     @default(now())
   updated_at           DateTime     @updatedAt
 
-  user               User               @relation(fields: [user_id], references: [id])
-  compliance_records ComplianceRecord[]
-  documents          Document[]
-  alerts             Alert[]
-  scheme_matches     SchemeMatch[]
-  buyer_view_logs    BuyerViewLog[]
+  user                  User                   @relation(fields: [user_id], references: [id])
+  compliance_records    ComplianceRecord[]
+  documents             Document[]
+  alerts                Alert[]
+  scheme_matches        SchemeMatch[]
+  buyer_view_logs       BuyerViewLog[]
+  rule_evaluation_logs  RuleEvaluationLog[]
+  health_score_snapshots HealthScoreSnapshot[]
+  supplier_trust_profile SupplierTrustProfile?
 
   @@index([gstin])
   @@index([udyam_number])
   @@map("msme_profiles")
 }
 
+// ─── SUPPLIER TRUST PROFILES ────────────────────────────────────
+
+model SupplierTrustProfile {
+  id                   Int               @id @default(autoincrement())
+  msme_id              Int               @unique
+  public_slug          String            @unique
+  public_identifier    String            @unique
+  display_name         String
+  trust_level          TrustLevel        @default(PENDING)
+  verification_state   VerificationState @default(DRAFT)
+  is_public            Boolean           @default(false)
+  trust_score_snapshot Float?
+  created_at           DateTime          @default(now())
+  updated_at           DateTime          @updatedAt
+
+  msme_profile              MsmeProfile                @relation(fields: [msme_id], references: [id])
+  trust_metadata            TrustMetadata[]
+  timeline_events           TrustTimelineEvent[]
+  trust_distribution_identity TrustDistributionIdentity?
+
+  @@index([public_slug])
+  @@index([public_identifier])
+  @@index([trust_level])
+  @@map("supplier_trust_profiles")
+}
+
+// ─── TRUST METADATA ─────────────────────────────────────────────
+
+model TrustMetadata {
+  id                        Int      @id @default(autoincrement())
+  supplier_trust_profile_id Int
+  verified_by               String?
+  verification_version      String   @default("v1.0.0")
+  confidence_score          Float    @default(0)
+  review_cycle              String   @default("ANNUAL")
+  next_review_date          DateTime?
+  expiration_date           DateTime?
+  metadata_json             Json?
+  created_at                DateTime @default(now())
+
+  supplier_trust_profile SupplierTrustProfile @relation(fields: [supplier_trust_profile_id], references: [id])
+
+  @@index([supplier_trust_profile_id])
+  @@map("trust_metadata")
+}
+
+// ─── TRUST TIMELINE EVENTS ─────────────────────────────────────
+
+model TrustTimelineEvent {
+  id                        Int      @id @default(autoincrement())
+  supplier_trust_profile_id Int
+  event_type                String
+  title                     String
+  description               String
+  actor                     String   @default("SYSTEM")
+  event_data                Json?
+  created_at                DateTime @default(now())
+
+  supplier_trust_profile SupplierTrustProfile @relation(fields: [supplier_trust_profile_id], references: [id])
+
+  @@index([supplier_trust_profile_id])
+  @@index([created_at])
+  @@map("trust_timeline_events")
+}
+
+// ─── TRUST DISTRIBUTION IDENTITIES ──────────────────────────────
+
+model TrustDistributionIdentity {
+  id                        Int                @id @default(autoincrement())
+  supplier_trust_profile_id Int                @unique
+  public_slug               String
+  stable_distribution_id    String             @unique
+  asset_version             String             @default("v1.0.0")
+  status                    DistributionStatus @default(ACTIVE)
+  enabled_channels          String[]           @default(["PUBLIC_LINK", "QR_CODE", "TRUST_CARD"])
+  created_at                DateTime           @default(now())
+  updated_at                DateTime           @updatedAt
+
+  supplier_trust_profile SupplierTrustProfile           @relation(fields: [supplier_trust_profile_id], references: [id])
+  config                 TrustDistributionConfig?
+  timeline_events        TrustDistributionTimelineEvent[]
+
+  @@index([public_slug])
+  @@index([stable_distribution_id])
+  @@map("trust_distribution_identities")
+}
+
+// ─── TRUST DISTRIBUTION CONFIGS ──────────────────────────────────
+
+model TrustDistributionConfig {
+  id                             Int      @id @default(autoincrement())
+  trust_distribution_identity_id Int      @unique
+  branding_json                  Json?
+  visibility_json                Json?
+  token_policy_json              Json?
+  expiration_days                Int      @default(365)
+  created_at                     DateTime @default(now())
+  updated_at                     DateTime @updatedAt
+
+  trust_distribution_identity TrustDistributionIdentity @relation(fields: [trust_distribution_identity_id], references: [id])
+
+  @@map("trust_distribution_configs")
+}
+
+// ─── TRUST DISTRIBUTION TIMELINE EVENTS ───────────────────────────
+
+model TrustDistributionTimelineEvent {
+  id                             Int      @id @default(autoincrement())
+  trust_distribution_identity_id Int
+  event_type                     String
+  title                          String
+  description                    String?
+  actor                          String   @default("SYSTEM")
+  event_data                     Json?
+  created_at                     DateTime @default(now())
+
+  trust_distribution_identity TrustDistributionIdentity @relation(fields: [trust_distribution_identity_id], references: [id])
+
+  @@index([trust_distribution_identity_id])
+  @@index([created_at])
+  @@map("trust_distribution_timeline_events")
+}
+
 // ─── COMPLIANCE RECORDS ─────────────────────────────────────────
 
 model ComplianceRecord {
-  id           Int              @id @default(autoincrement())
-  msme_id      Int
-  authority    AuthorityType
-  status       ComplianceStatus @default(UNKNOWN)
-  expiry_date  DateTime?
-  last_checked DateTime         @default(now())
-  notes        String?
-  raw_data     Json?
-  created_at   DateTime         @default(now())
-  updated_at   DateTime         @updatedAt
+  id                Int                @id @default(autoincrement())
+  msme_id           Int
+  authority         AuthorityType
+  status            ComplianceStatus   @default(UNKNOWN)
+  priority          CompliancePriority @default(MEDIUM)
+  renewal_frequency RenewalFrequency   @default(ANNUAL)
+  risk_level        RiskLevel          @default(LOW)
+  expiry_date       DateTime?
+  last_checked      DateTime           @default(now())
+  last_filed        DateTime?
+  filing_reference  String?
+  notes             String?
+  raw_data          Json?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
 
   msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
   alerts       Alert[]
 
   @@unique([msme_id, authority])
   @@index([msme_id])
+  @@index([status])
   @@index([expiry_date])
   @@map("compliance_records")
+}
+
+// ─── COMPLIANCE RULES ───────────────────────────────────────────
+
+model ComplianceRule {
+  id                  Int                @id @default(autoincrement())
+  rule_id             String             @unique
+  rule_name           String
+  description         String
+  version             Int                @default(1)
+  status              RuleStatus         @default(ACTIVE)
+  priority            CompliancePriority @default(MEDIUM)
+  authority           AuthorityType
+  legal_reference     String?
+  effective_date      DateTime?
+  expiry_date         DateTime?
+  conditions          Json
+  success_explanation String
+  failure_explanation String
+  tags                String[]           @default([])
+  metadata            Json?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  evaluation_logs RuleEvaluationLog[]
+
+  @@index([authority])
+  @@index([status])
+  @@index([rule_id])
+  @@map("compliance_rules")
+}
+
+// ─── RULE EVALUATION LOGS ───────────────────────────────────────
+
+model RuleEvaluationLog {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int
+  rule_id            Int
+  evaluated_at       DateTime @default(now())
+  execution_time_ms  Float
+  is_applicable      Boolean
+  matched_conditions Json
+  explanation        String
+  input_snapshot     Json
+  engine_version     String   @default("1.0.0")
+
+  msme_profile    MsmeProfile    @relation(fields: [msme_id], references: [id])
+  compliance_rule ComplianceRule @relation(fields: [rule_id], references: [id])
+
+  @@index([msme_id])
+  @@index([rule_id])
+  @@index([evaluated_at])
+  @@map("rule_evaluation_logs")
+}
+
+// ─── HEALTH SCORE CONFIGURATIONS ────────────────────────────────
+
+model HealthScoreConfig {
+  id                   Int        @id @default(autoincrement())
+  config_version       String     @unique
+  max_score            Int        @default(100)
+  min_score            Int        @default(0)
+  category_definitions Json
+  penalty_rules        Json
+  bonus_rules          Json
+  status               RuleStatus @default(ACTIVE)
+  effective_date       DateTime   @default(now())
+  expiry_date          DateTime?
+  created_at           DateTime   @default(now())
+  updated_at           DateTime   @updatedAt
+
+  @@map("health_score_configs")
+}
+
+// ─── SCORE CATEGORIES ────────────────────────────────────────────
+
+model ScoreCategory {
+  id             Int      @id @default(autoincrement())
+  category_code  String   @unique
+  category_name  String
+  description    String
+  default_weight Float    @default(1.0)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+
+  @@map("score_categories")
+}
+
+// ─── HEALTH SCORE SNAPSHOTS ─────────────────────────────────────
+
+model HealthScoreSnapshot {
+  id                      Int       @id @default(autoincrement())
+  msme_id                 Int
+  config_version          String
+  overall_score           Float?
+  risk_level              RiskLevel @default(LOW)
+  category_breakdown      Json?
+  recommendations_snapshot Json?
+  evaluated_at            DateTime  @default(now())
+  engine_version          String    @default("1.0.0")
+
+  msme_profile MsmeProfile @relation(fields: [msme_id], references: [id])
+
+  @@index([msme_id])
+  @@index([evaluated_at])
+  @@map("health_score_snapshots")
 }
 
 // ─── DOCUMENTS ──────────────────────────────────────────────────

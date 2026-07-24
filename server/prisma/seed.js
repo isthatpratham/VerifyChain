@@ -238,33 +238,154 @@ async function main() {
     },
   });
 
-  // 9. Alerts
-  const compRecord2 = await prisma.complianceRecord.findUnique({
-    where: { msme_id_authority: { msme_id: msme2.id, authority: 'ESIC' } },
-  });
+  // 10. Seed Statutory Compliance Rules
+  const rules = [
+    {
+      rule_id: 'RULE_GST_01',
+      rule_name: 'GST Filing Compliance Rule',
+      description: 'Applies to entities with valid GSTIN or turnover above registration threshold.',
+      authority: 'GST',
+      priority: 'HIGH',
+      legal_reference: 'Central Goods and Services Tax Act, 2017 - Section 39',
+      conditions: {
+        all: [
+          { field: 'gstin', operator: 'not_empty', expected: null },
+        ],
+      },
+      success_explanation: 'GST Compliance is MANDATORY due to active GSTIN registration.',
+      failure_explanation: 'GST Compliance is EXEMPT as entity has no registered GSTIN.',
+      tags: ['GST', 'TAX', 'STATUTORY'],
+    },
+    {
+      rule_id: 'RULE_EPFO_01',
+      rule_name: 'EPFO Monthly ECR Compliance Rule',
+      description: 'Applies to establishments with 10 or more employees.',
+      authority: 'EPFO',
+      priority: 'HIGH',
+      legal_reference: 'Employees Provident Funds and Miscellaneous Provisions Act, 1952',
+      conditions: {
+        all: [
+          { field: 'employee_count', operator: 'greater_than_or_equal', expected: 10 },
+        ],
+      },
+      success_explanation: 'EPFO Compliance is MANDATORY because workforce size is 10 or greater.',
+      failure_explanation: 'EPFO Compliance is EXEMPT as employee count is below statutory threshold (10).',
+      tags: ['EPFO', 'LABOUR', 'PROVIDENT_FUND'],
+    },
+    {
+      rule_id: 'RULE_ESIC_01',
+      rule_name: 'ESIC Employee Insurance Compliance Rule',
+      description: 'Applies to establishments employing 10 or more workforce members.',
+      authority: 'ESIC',
+      priority: 'MEDIUM',
+      legal_reference: 'Employees State Insurance Act, 1948 - Section 1(5)',
+      conditions: {
+        all: [
+          { field: 'employee_count', operator: 'greater_than_or_equal', expected: 10 },
+        ],
+      },
+      success_explanation: 'ESIC Compliance is MANDATORY as establishment employs 10+ workforce members.',
+      failure_explanation: 'ESIC Compliance is EXEMPT as workforce count is under 10.',
+      tags: ['ESIC', 'LABOUR', 'INSURANCE'],
+    },
+    {
+      rule_id: 'RULE_MCA_01',
+      rule_name: 'MCA Annual Financial Return Compliance Rule',
+      description: 'Applies to all registered legal corporate entities.',
+      authority: 'MCA',
+      priority: 'CRITICAL',
+      legal_reference: 'Companies Act, 2013 - Section 137',
+      conditions: {
+        all: [
+          { field: 'is_profile_complete', operator: 'equals', expected: true },
+        ],
+      },
+      success_explanation: 'MCA Corporate Filing is MANDATORY for registered enterprise entities.',
+      failure_explanation: 'MCA Compliance is not evaluated until business profile is completed.',
+      tags: ['MCA', 'ROC', 'CORPORATE'],
+    },
+    {
+      rule_id: 'RULE_UDYAM_01',
+      rule_name: 'Udyam Registration Renewal & Verification Rule',
+      description: 'Applies to registered MSME enterprises holding valid Udyam certificate.',
+      authority: 'UDYAM',
+      priority: 'HIGH',
+      legal_reference: 'Micro, Small and Medium Enterprises Development Act, 2006',
+      conditions: {
+        all: [
+          { field: 'udyam_number', operator: 'not_empty', expected: null },
+        ],
+      },
+      success_explanation: 'Udyam Registration is MANDATORY for verified MSME classification.',
+      failure_explanation: 'Udyam Compliance requires valid Udyam registration number.',
+      tags: ['UDYAM', 'MSME', 'REGISTRATION'],
+    },
+    {
+      rule_id: 'RULE_FSSAI_01',
+      rule_name: 'FSSAI Food Safety License Compliance Rule',
+      description: 'Applies to businesses operating in food processing, trading, or catering sectors.',
+      authority: 'FSSAI',
+      priority: 'CRITICAL',
+      legal_reference: 'Food Safety and Standards Act, 2006 - Section 31',
+      conditions: {
+        all: [
+          { field: 'is_food_business', operator: 'equals', expected: true },
+        ],
+      },
+      success_explanation: 'FSSAI License is MANDATORY because this business operates in the food sector.',
+      failure_explanation: 'FSSAI Compliance is EXEMPT because business is not registered as a food business.',
+      tags: ['FSSAI', 'FOOD_SAFETY', 'LICENSE'],
+    },
+  ];
 
-  if (compRecord2) {
-    await prisma.alert.upsert({
-      where: {
-        msme_id_compliance_record_id_threshold: {
-          msme_id: msme2.id,
-          compliance_record_id: compRecord2.id,
-          threshold: 'DAYS_15',
-        },
-      },
-      update: {},
-      create: {
-        msme_id: msme2.id,
-        compliance_record_id: compRecord2.id,
-        threshold: 'DAYS_15',
-        status: 'SENT',
-        scheduled_for: new Date(),
-        sent_at: new Date(),
-      },
+  for (const rule of rules) {
+    await prisma.complianceRule.upsert({
+      where: { rule_id: rule.rule_id },
+      update: rule,
+      create: rule,
     });
   }
 
+  // 11. Seed Health Score Categories & Initial Config
+  const categories = [
+    { category_code: 'TAX', category_name: 'Tax Compliance', description: 'Goods & Services Tax (GST) returns and statutory settlements.', default_weight: 1.0 },
+    { category_code: 'LABOUR', category_name: 'Labour & Social Security', description: 'Employees Provident Fund (EPFO) and ESIC statutory contributions.', default_weight: 1.0 },
+    { category_code: 'CORPORATE', category_name: 'Corporate Compliance', description: 'Ministry of Corporate Affairs (MCA) annual returns and disclosures.', default_weight: 1.0 },
+    { category_code: 'LICENSING', category_name: 'Licensing & Registrations', description: 'Udyam MSME certification and FSSAI Food Safety licenses.', default_weight: 1.0 },
+  ];
+
+  for (const cat of categories) {
+    await prisma.scoreCategory.upsert({
+      where: { category_code: cat.category_code },
+      update: cat,
+      create: cat,
+    });
+  }
+
+  await prisma.healthScoreConfig.upsert({
+    where: { config_version: 'v1.0.0' },
+    update: {},
+    create: {
+      config_version: 'v1.0.0',
+      max_score: 100,
+      min_score: 0,
+      category_definitions: {
+        categories: ['TAX', 'LABOUR', 'CORPORATE', 'LICENSING'],
+      },
+      penalty_rules: {
+        overdue_deduction: 15,
+        due_deduction: 5,
+      },
+      bonus_rules: {
+        perfect_compliance_bonus: 5,
+      },
+      status: 'ACTIVE',
+      effective_date: new Date(),
+    },
+  });
+
   console.log('Seed completed successfully.');
+
 }
 
 main()

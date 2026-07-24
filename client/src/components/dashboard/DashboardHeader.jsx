@@ -1,37 +1,66 @@
-import { Link } from 'react-router-dom';
+/**
+ * DashboardHeader.jsx
+ * Enterprise Dashboard Header with welcome greeting, business title, and sync status.
+ */
+import { ShieldCheck, ArrowClockwise } from '@phosphor-icons/react';
 
-export function DashboardHeader({ userName, businessName, lastSync }) {
+export function DashboardHeader({
+  userName,
+  businessName,
+  lastSync,
+  onSync,
+  syncing = false,
+}) {
   const formattedSync = lastSync
     ? new Date(lastSync).toLocaleString('en-IN', {
-        day: '2-digit',
+        day: 'numeric',
         month: 'short',
+        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       })
-    : 'Not synced yet';
+    : 'Live Sync Active';
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-gray-200 gap-4 mb-8">
+    <div className="p-6 rounded-[--radius-md] border border-[--vc-border] bg-[--vc-surface-raised] mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Good day, {userName || 'Business Owner'}
+        <div className="flex items-center gap-2 mb-1">
+          <ShieldCheck size={18} className="text-[--vc-brand]" />
+          <span className="text-[--text-xs] font-semibold uppercase tracking-[--ls-caps] text-[--vc-text-brand]">
+            Enterprise Compliance Intelligence
+          </span>
+        </div>
+        <h1 className="font-[--font-heading] text-[--text-2xl] font-bold text-[--vc-text-primary]">
+          {businessName || 'MSME Enterprise Dashboard'}
         </h1>
-        {businessName && (
-          <p className="text-sm text-gray-600 mt-1 font-medium">
-            Managing <span className="text-brand font-semibold">{businessName}</span>
+        {userName && (
+          <p className="text-[--text-xs] text-[--vc-text-secondary] mt-0.5">
+            Welcome back, <span className="font-medium text-[--vc-text-primary]">{userName}</span>
           </p>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
-          Last sync: {formattedSync}
-        </span>
-        <Link
-          to="/profile"
-          className="px-4 py-2 text-xs font-semibold text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors"
-        >
-          Manage Profile
-        </Link>
+
+      <div className="flex items-center gap-3 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[--vc-border]">
+        <div className="text-right hidden sm:block">
+          <span className="block text-[10px] uppercase tracking-wider text-[--vc-text-tertiary]">
+            Last Synchronization
+          </span>
+          <span className="font-mono text-[--text-xs] font-medium text-[--vc-text-secondary]">
+            {formattedSync}
+          </span>
+        </div>
+
+        {onSync && (
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[--radius-sm] border border-[--vc-border] bg-[--vc-bg-base] text-[--text-xs] font-medium text-[--vc-text-primary] hover:bg-[--vc-bg-subtle] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--vc-brand]"
+          >
+            <ArrowClockwise size={14} className={syncing ? 'animate-spin text-[--vc-brand]' : ''} />
+            <span>{syncing ? 'Syncing...' : 'Sync Records'}</span>
+          </button>
+        )}
       </div>
     </div>
   );

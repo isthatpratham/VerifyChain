@@ -1,10 +1,209 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * VerifyChain — index.css
+ * Global stylesheet. Establishes the design system foundation.
+ *
+ * Import order:
+ *   1. Font packages (bundled via npm — no CDN)
+ *   2. Design tokens (CSS custom properties)
+ *   3. Motion utilities
+ *   4. Tailwind directives
+ *   5. Base styles
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* ─── 1. FONTS ─────────────────────────────────────────────────────────────── */
+/* Headings: Plus Jakarta Sans (DESIGN_SYSTEM.md) */
+@import '@fontsource-variable/plus-jakarta-sans';
+/* Body: IBM Plex Sans — licensed substitute for General Sans */
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/400-italic.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+
+/* ─── 2. DESIGN TOKENS ─────────────────────────────────────────────────────── */
+@import './styles/tokens.css';
+
+/* ─── 3. MOTION UTILITIES ──────────────────────────────────────────────────── */
+@import './animations/motion.css';
+
+/* ─── 4. TAILWIND ──────────────────────────────────────────────────────────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── 5. BASE STYLES ───────────────────────────────────────────────────────── */
+
+/*
+ * Box model — all elements use border-box
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/*
+ * Root
+ */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Prevent layout shift from scrollbar */
+  scrollbar-gutter: stable;
+}
+
+/*
+ * Body — apply font tokens, background, color
+ * DESIGN_SYSTEM.md: light theme default, IBM Plex Sans body
+ */
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background-color: #F9FAFB;
-  color: #111827;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
+  color: var(--vc-text-primary);
+  background-color: var(--vc-bg-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
 }
+
+/*
+ * Headings — Plus Jakarta Sans
+ * DESIGN_SYSTEM.md: heading hierarchy, confident rather than loud
+ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-snug);
+  color: var(--vc-text-primary);
+  margin: 0;
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-md); }
+
+/*
+ * Paragraphs
+ */
+p {
+  margin: 0;
+  line-height: var(--lh-relaxed);
+}
+
+/*
+ * Links
+ */
+a {
+  color: var(--vc-text-link);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-in-out);
+}
+
+a:hover {
+  color: var(--vc-text-link-hover);
+}
+
+/*
+ * Images & media — block by default
+ */
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+/*
+ * Lists — reset
+ */
+ul, ol {
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * Form elements inherit font
+ */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/*
+ * Focus-visible ring — visible only for keyboard navigation
+ * DESIGN_SYSTEM.md: visible focus states required
+ */
+:focus-visible {
+  outline: 2px solid var(--vc-border-focus);
+  outline-offset: 2px;
+}
+
+/* Remove focus ring for mouse interactions */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/*
+ * Selection color — brand-tinted
+ */
+::selection {
+  background-color: var(--color-prussian-100);
+  color: var(--color-prussian-900);
+}
+
+/*
+ * Scrollbar styling — subtle, non-intrusive
+ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vc-bg-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vc-border-strong);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vc-text-tertiary);
+}
+
+/*
+ * Reduced motion — honour system preference
+ * CSS token durations already zeroed in tokens.css @media block.
+ * This handles any stray transition/animation declarations.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
