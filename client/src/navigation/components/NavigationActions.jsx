@@ -3,7 +3,7 @@
  * Auth-aware action buttons in the navbar (right side).
  *
  * Unauthenticated: "Sign in" (ghost) + "Get started" (primary)
- * Authenticated:   "Dashboard" link + avatar dropdown
+ * Authenticated:   "Dashboard", "Business Profile", Sign out
  *
  * DESIGN_SYSTEM.md: avoid oversized CTAs, avoid flashy buttons.
  * Buttons should be measured, not demanding.
@@ -11,6 +11,7 @@
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { SignOut } from '@phosphor-icons/react';
 
 /**
  * @param {Object} props
@@ -41,7 +42,7 @@ export function NavigationActions({ context = 'desktop', onClose }) {
             <button
               type="button"
               onClick={() => { auth.logout?.(); onClose?.(); }}
-              className={mobileItemClass + ' text-left'}
+              className={mobileItemClass + ' text-left text-red-400'}
             >
               Sign out
             </button>
@@ -67,16 +68,33 @@ export function NavigationActions({ context = 'desktop', onClose }) {
   // Desktop
   if (isAuthenticated) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Link
           to="/dashboard"
           className="text-[--text-sm] font-medium text-[--vc-text-secondary] hover:text-[--vc-text-primary] transition-colors duration-[--duration-fast] focus-visible:outline-none focus-visible:underline"
         >
           Dashboard
         </Link>
+        <Link
+          to="/profile"
+          className="text-[--text-sm] font-medium text-[--vc-text-secondary] hover:text-[--vc-text-primary] transition-colors duration-[--duration-fast] focus-visible:outline-none focus-visible:underline"
+        >
+          Profile
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => auth?.logout?.()}
+          title="Sign out of account"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[--radius-sm] text-[--text-xs] font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+        >
+          <SignOut size={14} />
+          <span>Sign out</span>
+        </button>
+
         <div
-          className="w-7 h-7 rounded-[--radius-sm] bg-[--vc-bg-muted] border border-[--vc-border] flex items-center justify-center text-[--text-xs] font-semibold text-[--vc-text-secondary] cursor-pointer select-none"
-          aria-label="User menu"
+          className="w-7 h-7 rounded-[--radius-sm] bg-[--vc-bg-muted] border border-[--vc-border] flex items-center justify-center text-[--text-xs] font-semibold text-[--vc-text-secondary] select-none ml-1"
+          aria-label="User avatar"
           title={auth?.user?.email || 'Account'}
         >
           {(auth?.user?.name || auth?.user?.email || 'U')[0].toUpperCase()}

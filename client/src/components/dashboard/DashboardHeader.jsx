@@ -1,8 +1,9 @@
 /**
  * DashboardHeader.jsx
- * Enterprise Dashboard Header with welcome greeting, business name, and sync status.
+ * Enterprise Dashboard Header with welcome greeting, business name, sync status, and professional sign out.
  */
-import { ShieldCheck, ArrowClockwise } from '@phosphor-icons/react';
+import { ShieldCheck, ArrowClockwise, SignOut } from '@phosphor-icons/react';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * @param {Object} props
@@ -19,6 +20,8 @@ export function DashboardHeader({
   onSync,
   syncing = false,
 }) {
+  const { logout } = useAuth();
+
   const formattedSync = lastSync
     ? new Date(lastSync).toLocaleString('en-IN', {
         day: 'numeric',
@@ -69,6 +72,16 @@ export function DashboardHeader({
             <span>{syncing ? 'Syncing...' : 'Sync Records'}</span>
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={logout}
+          title="Sign out of account"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[--radius-sm] border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-[--text-xs] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+        >
+          <SignOut size={14} />
+          <span>Sign Out</span>
+        </button>
       </div>
     </div>
   );
