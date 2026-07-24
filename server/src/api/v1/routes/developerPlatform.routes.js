@@ -5,10 +5,11 @@
 const express = require('express');
 const router = express.Router();
 const { sendSuccess, sendError } = require('../../../utils/apiResponse');
-const apiKeyAuthMiddleware = require('../../../middleware/apiKeyAuth.middleware');
+const dualAuthMiddleware = require('../../../middleware/dualAuth.middleware');
 const { requireScope } = require('../../../middleware/scopeAuth.middleware');
 
-router.use(apiKeyAuthMiddleware());
+// Dual-auth: accepts JWT (frontend dashboard) or API Key (external consumers)
+router.use(dualAuthMiddleware());
 const {
   DeveloperDashboardService,
   ApiKeyManagementService,
@@ -29,7 +30,7 @@ const {
  */
 router.get('/dashboard', requireScope('developer.read'), async (req, res) => {
   try {
-    const msmeId = req.query.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const data = await DeveloperDashboardService.getDashboardOverview(msmeId);
     return sendSuccess(res, { statusCode: 200, data });
   } catch (err) {
@@ -42,9 +43,10 @@ router.get('/dashboard', requireScope('developer.read'), async (req, res) => {
  */
 router.get('/analytics', requireScope('developer.read'), async (req, res) => {
   try {
-    const msmeId = req.query.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId || 1;
     const days = parseInt(req.query.days || 7, 10);
-    const data = await AnalyticsService.getUsageAnalytics(msmeId, days);
+    const { search, appId } = req.query;
+    const data = await AnalyticsService.getUsageAnalytics(msmeId, days, search, appId);
     return sendSuccess(res, { statusCode: 200, data });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'ANALYTICS_ERROR', message: 'Failed to fetch analytics dataset.', details: err.message });
@@ -56,7 +58,7 @@ router.get('/analytics', requireScope('developer.read'), async (req, res) => {
  */
 router.get('/apps', requireScope('developer.read'), async (req, res) => {
   try {
-    const msmeId = req.query.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId || 1;
     const apps = await DeveloperAppManagementService.listApps(msmeId);
     return sendSuccess(res, { statusCode: 200, data: apps });
   } catch (err) {
@@ -64,9 +66,19 @@ router.get('/apps', requireScope('developer.read'), async (req, res) => {
   }
 });
 
+router.get('/apps/:id', requireScope('developer.read'), async (req, res) => {
+  try {
+    const details = await DeveloperAppManagementService.getAppDetails(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: details });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'APP_DETAILS_ERROR', message: 'Failed to fetch application details.', details: err.message });
+  }
+});
+
 router.post('/apps', requireScope('developer.write'), async (req, res) => {
   try {
-    const { msmeId = 1, name, description, environment } = req.body;
+    const { name, description, environment } = req.body;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId || 1;
     if (!name) {
       return sendError(res, { statusCode: 400, errorCode: 'MISSING_FIELD', message: "Field 'name' is required." });
     }
@@ -95,16 +107,33 @@ router.patch('/apps/:id/toggle', requireScope('developer.write'), async (req, re
   }
 });
 
+router.post('/apps/:id/apikeys', requireScope('apikey.manage'), async (req, res) => {
+  try {
+    const { name, environment, scopes, expiresDays } = req.body;
+    const result = await DeveloperAppManagementService.assignApiKey(req.params.id, { name, environment, scopes, expiresDays });
+    return sendSuccess(res, { statusCode: 201, data: result });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'APP_APIKEY_ASSIGN_ERROR', message: 'Failed to assign API key to application.', details: err.message });
+  }
+});
+
+router.delete('/apps/:id', requireScope('developer.write'), async (req, res) => {
+  try {
+    const result = await DeveloperAppManagementService.deleteApp(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: result });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'APP_DELETE_ERROR', message: 'Failed to delete application.', details: err.message });
+  }
+});
+
 /**
  * API Key Management
  */
 router.get('/apikeys', requireScope('apikey.manage'), async (req, res) => {
   try {
     const { developerAppId } = req.query;
-    if (!developerAppId) {
-      return sendError(res, { statusCode: 400, errorCode: 'MISSING_PARAM', message: 'Query parameter developerAppId is required.' });
-    }
-    const keys = await ApiKeyManagementService.listApiKeys(developerAppId);
+    const msmeId = req.msmeId || req.user?.msmeId || 1;
+    const keys = await ApiKeyManagementService.listApiKeys({ developerAppId, msmeId });
     return sendSuccess(res, { statusCode: 200, data: keys });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'APIKEYS_FETCH_ERROR', message: 'Failed to list API keys.', details: err.message });
@@ -114,13 +143,30 @@ router.get('/apikeys', requireScope('apikey.manage'), async (req, res) => {
 router.post('/apikeys', requireScope('apikey.manage'), async (req, res) => {
   try {
     const { developerAppId, name, environment, scopes, expiresDays } = req.body;
-    if (!developerAppId) {
-      return sendError(res, { statusCode: 400, errorCode: 'MISSING_FIELD', message: 'Field developerAppId is required.' });
-    }
-    const result = await ApiKeyManagementService.createApiKey({ developerAppId, name, environment, scopes, expiresDays });
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId || 1;
+    const result = await ApiKeyManagementService.createApiKey({ developerAppId, msmeId, name, environment, scopes, expiresDays });
     return sendSuccess(res, { statusCode: 201, data: result });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'APIKEY_CREATE_ERROR', message: 'Failed to create API key.', details: err.message });
+  }
+});
+
+router.patch('/apikeys/:id', requireScope('apikey.manage'), async (req, res) => {
+  try {
+    const { name, status, scopes, expiresDays } = req.body;
+    const updated = await ApiKeyManagementService.updateApiKey(req.params.id, { name, status, scopes, expiresDays });
+    return sendSuccess(res, { statusCode: 200, data: updated });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'APIKEY_UPDATE_ERROR', message: 'Failed to update API key.', details: err.message });
+  }
+});
+
+router.delete('/apikeys/:id', requireScope('apikey.manage'), async (req, res) => {
+  try {
+    const result = await ApiKeyManagementService.deleteApiKey(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: result });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'APIKEY_DELETE_ERROR', message: 'Failed to delete API key.', details: err.message });
   }
 });
 
@@ -158,10 +204,8 @@ router.get('/apikeys/:id/stats', requireScope('apikey.manage'), async (req, res)
 router.get('/webhooks', requireScope('webhook.manage'), async (req, res) => {
   try {
     const { developerAppId } = req.query;
-    if (!developerAppId) {
-      return sendError(res, { statusCode: 400, errorCode: 'MISSING_PARAM', message: 'Query parameter developerAppId is required.' });
-    }
-    const webhooks = await WebhookManagementService.listSubscriptions(developerAppId);
+    const msmeId = req.msmeId || req.user?.msmeId || 1;
+    const webhooks = await WebhookManagementService.listSubscriptions({ developerAppId, msmeId });
     return sendSuccess(res, { statusCode: 200, data: webhooks });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'WEBHOOKS_FETCH_ERROR', message: 'Failed to list webhook subscriptions.', details: err.message });
@@ -171,13 +215,33 @@ router.get('/webhooks', requireScope('webhook.manage'), async (req, res) => {
 router.post('/webhooks', requireScope('webhook.manage'), async (req, res) => {
   try {
     const { developerAppId, targetUrl, subscribedEvents } = req.body;
-    if (!developerAppId || !targetUrl) {
-      return sendError(res, { statusCode: 400, errorCode: 'MISSING_FIELDS', message: 'Fields developerAppId and targetUrl are required.' });
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId || 1;
+    if (!targetUrl) {
+      return sendError(res, { statusCode: 400, errorCode: 'MISSING_FIELDS', message: "Field 'targetUrl' is required." });
     }
-    const result = await WebhookManagementService.createSubscription({ developerAppId, targetUrl, subscribedEvents });
+    const result = await WebhookManagementService.createSubscription({ developerAppId, msmeId, targetUrl, subscribedEvents });
     return sendSuccess(res, { statusCode: 201, data: result });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'WEBHOOK_CREATE_ERROR', message: 'Failed to create webhook subscription.', details: err.message });
+  }
+});
+
+router.patch('/webhooks/:id', requireScope('webhook.manage'), async (req, res) => {
+  try {
+    const { targetUrl, subscribedEvents, is_active } = req.body;
+    const updated = await WebhookManagementService.updateSubscription(req.params.id, { targetUrl, subscribedEvents, is_active });
+    return sendSuccess(res, { statusCode: 200, data: updated });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'WEBHOOK_UPDATE_ERROR', message: 'Failed to update webhook subscription.', details: err.message });
+  }
+});
+
+router.delete('/webhooks/:id', requireScope('webhook.manage'), async (req, res) => {
+  try {
+    const result = await WebhookManagementService.deleteSubscription(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: result });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'WEBHOOK_DELETE_ERROR', message: 'Failed to delete webhook subscription.', details: err.message });
   }
 });
 
@@ -196,6 +260,15 @@ router.post('/webhooks/:id/rotate-secret', requireScope('webhook.manage'), async
     return sendSuccess(res, { statusCode: 200, data: result });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'WEBHOOK_ROTATE_ERROR', message: 'Failed to rotate webhook secret.', details: err.message });
+  }
+});
+
+router.post('/webhooks/:id/test', requireScope('webhook.manage'), async (req, res) => {
+  try {
+    const result = await WebhookManagementService.sendTestPing(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: result });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'WEBHOOK_TEST_ERROR', message: 'Failed to send test ping.', details: err.message });
   }
 });
 
@@ -222,11 +295,34 @@ router.get('/webhooks/:id/logs', requireScope('webhook.manage'), async (req, res
  */
 router.get('/connectors', requireScope('connector.manage'), async (req, res) => {
   try {
-    const msmeId = req.query.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId || 1;
     const connectors = await ConnectorManagementService.listInstalledConnectors(msmeId);
     return sendSuccess(res, { statusCode: 200, data: connectors });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'CONNECTORS_FETCH_ERROR', message: 'Failed to list installed connectors.', details: err.message });
+  }
+});
+
+router.post('/connectors/connections', requireScope('connector.manage'), async (req, res) => {
+  try {
+    const { providerCode, name, environment, credentials, config } = req.body;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId || 1;
+    if (!providerCode) {
+      return sendError(res, { statusCode: 400, errorCode: 'MISSING_FIELD', message: "Field 'providerCode' is required." });
+    }
+    const result = await ConnectorManagementService.connectProvider({ msmeId, providerCode, name, environment, credentials, config });
+    return sendSuccess(res, { statusCode: 201, data: result });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'CONNECTOR_CONNECT_ERROR', message: 'Failed to connect provider.', details: err.message });
+  }
+});
+
+router.patch('/connectors/connections/:id/toggle', requireScope('connector.manage'), async (req, res) => {
+  try {
+    const updated = await ConnectorManagementService.toggleConnectionStatus(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: updated });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'CONNECTOR_TOGGLE_ERROR', message: 'Failed to toggle connection status.', details: err.message });
   }
 });
 
@@ -259,6 +355,15 @@ router.post('/connectors/connections/:id/rotate', requireScope('connector.manage
   }
 });
 
+router.get('/connectors/connections/:id/logs', requireScope('connector.manage'), async (req, res) => {
+  try {
+    const logs = await ConnectorManagementService.getConnectionLogs(req.params.id);
+    return sendSuccess(res, { statusCode: 200, data: logs });
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'CONNECTOR_LOGS_ERROR', message: 'Failed to fetch connection logs.', details: err.message });
+  }
+});
+
 router.delete('/connectors/connections/:id', requireScope('connector.manage'), async (req, res) => {
   try {
     const result = await ConnectorManagementService.deleteConnection(req.params.id);
@@ -273,7 +378,8 @@ router.delete('/connectors/connections/:id', requireScope('connector.manage'), a
  */
 router.get('/audit', requireScope('audit.read'), async (req, res) => {
   try {
-    const { msmeId = 1, search, action, resourceType } = req.query;
+    const { search, action, resourceType } = req.query;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const logs = await AuditCenterService.searchAuditLogs({ msmeId, search, action, resourceType });
     return sendSuccess(res, { statusCode: 200, data: logs });
   } catch (err) {
@@ -283,7 +389,8 @@ router.get('/audit', requireScope('audit.read'), async (req, res) => {
 
 router.post('/audit/:id/bookmark', requireScope('audit.read'), async (req, res) => {
   try {
-    const { msmeId = 1, note } = req.body;
+    const { note } = req.body;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId;
     const bookmark = await AuditCenterService.bookmarkAuditLog(msmeId, req.params.id, note);
     return sendSuccess(res, { statusCode: 201, data: bookmark });
   } catch (err) {
@@ -293,7 +400,7 @@ router.post('/audit/:id/bookmark', requireScope('audit.read'), async (req, res) 
 
 router.delete('/audit/:id/bookmark', requireScope('audit.read'), async (req, res) => {
   try {
-    const { msmeId = 1 } = req.query;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const deleted = await AuditCenterService.removeBookmark(msmeId, req.params.id);
     return sendSuccess(res, { statusCode: 200, data: deleted });
   } catch (err) {
@@ -306,7 +413,7 @@ router.delete('/audit/:id/bookmark', requireScope('audit.read'), async (req, res
  */
 router.get('/security', requireScope('developer.read'), async (req, res) => {
   try {
-    const msmeId = req.query.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const report = await SecurityCenterService.getSecurityReport(msmeId);
     return sendSuccess(res, { statusCode: 200, data: report });
   } catch (err) {
@@ -316,7 +423,7 @@ router.get('/security', requireScope('developer.read'), async (req, res) => {
 
 router.post('/security/alerts/:id/resolve', requireScope('developer.write'), async (req, res) => {
   try {
-    const msmeId = req.body.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId;
     const resolved = await SecurityCenterService.resolveAlert(msmeId, req.params.id);
     return sendSuccess(res, { statusCode: 200, data: resolved });
   } catch (err) {
@@ -341,7 +448,8 @@ router.get('/observability', requireScope('developer.read'), async (req, res) =>
  */
 router.get('/search', requireScope('developer.read'), async (req, res) => {
   try {
-    const { msmeId = 1, q } = req.query;
+    const { q } = req.query;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const searchResults = await GlobalSearchService.universalSearch(msmeId, q);
     return sendSuccess(res, { statusCode: 200, data: searchResults });
   } catch (err) {
@@ -354,7 +462,7 @@ router.get('/search', requireScope('developer.read'), async (req, res) => {
  */
 router.get('/preferences', requireScope('developer.read'), async (req, res) => {
   try {
-    const msmeId = req.query.msmeId || 1;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const dashPref = await PreferencesService.getDashboardPreferences(msmeId);
     const notifPref = await PreferencesService.getNotificationPreferences(msmeId);
     return sendSuccess(res, { statusCode: 200, data: { dashboard: dashPref, notifications: notifPref } });
@@ -365,7 +473,8 @@ router.get('/preferences', requireScope('developer.read'), async (req, res) => {
 
 router.put('/preferences/dashboard', requireScope('developer.write'), async (req, res) => {
   try {
-    const { msmeId = 1, theme, default_view, widget_config_json } = req.body;
+    const { theme, default_view, widget_config_json } = req.body;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId;
     const updated = await PreferencesService.updateDashboardPreferences(msmeId, { theme, default_view, widget_config_json });
     return sendSuccess(res, { statusCode: 200, data: updated });
   } catch (err) {
@@ -375,7 +484,8 @@ router.put('/preferences/dashboard', requireScope('developer.write'), async (req
 
 router.put('/preferences/notifications', requireScope('developer.write'), async (req, res) => {
   try {
-    const { msmeId = 1, email_alerts, security_alerts, webhook_failures_alert } = req.body;
+    const { email_alerts, security_alerts, webhook_failures_alert } = req.body;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId;
     const updated = await PreferencesService.updateNotificationPreferences(msmeId, { email_alerts, security_alerts, webhook_failures_alert });
     return sendSuccess(res, { statusCode: 200, data: updated });
   } catch (err) {
@@ -385,7 +495,8 @@ router.put('/preferences/notifications', requireScope('developer.write'), async 
 
 router.get('/filters', requireScope('developer.read'), async (req, res) => {
   try {
-    const { msmeId = 1, category } = req.query;
+    const { category } = req.query;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
     const filters = await PreferencesService.getSavedFilters(msmeId, category);
     return sendSuccess(res, { statusCode: 200, data: filters });
   } catch (err) {
@@ -395,7 +506,8 @@ router.get('/filters', requireScope('developer.read'), async (req, res) => {
 
 router.post('/filters', requireScope('developer.write'), async (req, res) => {
   try {
-    const { msmeId = 1, name, category, filterJson } = req.body;
+    const { name, category, filterJson } = req.body;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId;
     const filter = await PreferencesService.saveFilter(msmeId, name, category, filterJson);
     return sendSuccess(res, { statusCode: 201, data: filter });
   } catch (err) {
