@@ -93,6 +93,29 @@ enum AuthorityType {
   FSSAI
 }
 
+enum TrustLevel {
+  PENDING
+  VERIFIED
+  TRUSTED
+  HIGHLY_TRUSTED
+  ENTERPRISE_TRUSTED
+  SUSPENDED
+  EXPIRED
+  REVOKED
+}
+
+enum VerificationState {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+  SUSPENDED
+  REVOKED
+  ARCHIVED
+}
+
 // ─── USERS ──────────────────────────────────────────────────────
 
 model User {
@@ -139,10 +162,75 @@ model MsmeProfile {
   buyer_view_logs       BuyerViewLog[]
   rule_evaluation_logs  RuleEvaluationLog[]
   health_score_snapshots HealthScoreSnapshot[]
+  supplier_trust_profile SupplierTrustProfile?
 
   @@index([gstin])
   @@index([udyam_number])
   @@map("msme_profiles")
+}
+
+// ─── SUPPLIER TRUST PROFILES ────────────────────────────────────
+
+model SupplierTrustProfile {
+  id                   Int               @id @default(autoincrement())
+  msme_id              Int               @unique
+  public_slug          String            @unique
+  public_identifier    String            @unique
+  display_name         String
+  trust_level          TrustLevel        @default(PENDING)
+  verification_state   VerificationState @default(DRAFT)
+  is_public            Boolean           @default(false)
+  trust_score_snapshot Float?
+  created_at           DateTime          @default(now())
+  updated_at           DateTime          @updatedAt
+
+  msme_profile   MsmeProfile         @relation(fields: [msme_id], references: [id])
+  trust_metadata TrustMetadata[]
+  timeline_events TrustTimelineEvent[]
+
+  @@index([public_slug])
+  @@index([public_identifier])
+  @@index([trust_level])
+  @@map("supplier_trust_profiles")
+}
+
+// ─── TRUST METADATA ─────────────────────────────────────────────
+
+model TrustMetadata {
+  id                        Int      @id @default(autoincrement())
+  supplier_trust_profile_id Int
+  verified_by               String?
+  verification_version      String   @default("v1.0.0")
+  confidence_score          Float    @default(0)
+  review_cycle              String   @default("ANNUAL")
+  next_review_date          DateTime?
+  expiration_date           DateTime?
+  metadata_json             Json?
+  created_at                DateTime @default(now())
+
+  supplier_trust_profile SupplierTrustProfile @relation(fields: [supplier_trust_profile_id], references: [id])
+
+  @@index([supplier_trust_profile_id])
+  @@map("trust_metadata")
+}
+
+// ─── TRUST TIMELINE EVENTS ─────────────────────────────────────
+
+model TrustTimelineEvent {
+  id                        Int      @id @default(autoincrement())
+  supplier_trust_profile_id Int
+  event_type                String
+  title                     String
+  description               String
+  actor                     String   @default("SYSTEM")
+  event_data                Json?
+  created_at                DateTime @default(now())
+
+  supplier_trust_profile SupplierTrustProfile @relation(fields: [supplier_trust_profile_id], references: [id])
+
+  @@index([supplier_trust_profile_id])
+  @@index([created_at])
+  @@map("trust_timeline_events")
 }
 
 // ─── COMPLIANCE RECORDS ─────────────────────────────────────────

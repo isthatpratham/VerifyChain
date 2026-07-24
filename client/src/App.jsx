@@ -15,6 +15,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { CookiesPage } from './pages/CookiesPage';
 import { MaintenancePage } from './pages/MaintenancePage';
+import { PublicTrustPortal } from './pages/PublicTrustPortal';
 import NotFound from './pages/NotFound';
 
 import Login from './pages/Login';
@@ -37,6 +38,9 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            {/* Dedicated Standalone Public Trust Portal Route */}
+            <Route path="/verify/:slug" element={<PublicTrustPortal />} />
+
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Landing />} />
               <Route path="features" element={<FeaturesPage />} />
@@ -111,5 +115,3 @@ export default function App() {
     </MotionProvider>
   );
 }
-
-

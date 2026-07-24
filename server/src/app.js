@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth.routes');
 const msmeRoutes = require('./routes/msme.routes');
 const verificationRoutes = require('./routes/verification.routes');
 const complianceRoutes = require('./routes/compliance.routes');
+const supplierTrustRoutes = require('./routes/supplierTrust.routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -37,6 +38,9 @@ app.use('/api/msme', verificationRoutes);
 // Compliance Data Foundation Routes (Protected: CRUD on /api/compliance and /api/msme/compliance)
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/msme/compliance', complianceRoutes);
+
+// Supplier Trust Platform Foundation Routes (Public & Protected)
+app.use('/api/supplier-trust', supplierTrustRoutes);
 
 // 404 Handler
 app.use((req, res) => {
