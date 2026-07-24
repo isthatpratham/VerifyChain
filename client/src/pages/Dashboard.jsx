@@ -1,7 +1,7 @@
 /**
  * Dashboard.jsx
- * Redesigned Enterprise Dashboard with Score Engine Ring, Business Summary,
- * Verification Operations, Compliance Workspace, and Service Modules.
+ * Enterprise Dashboard with Score Engine Ring, Business Summary,
+ * Quick Actions, Verification Operations, Compliance Workspace, and Service Modules.
  *
  * Strictly preserves existing useAuth, useMsmeProfile, and useBusinessVerification hooks.
  */
@@ -14,6 +14,7 @@ import { BusinessVerificationCard } from '../components/profile/BusinessVerifica
 import { ScoreRingDisplay } from '../components/dashboard/ScoreRingDisplay';
 import { ComplianceWorkspace } from '../components/dashboard/ComplianceWorkspace';
 import { ModulePlaceholdersGrid } from '../components/dashboard/ModulePlaceholdersGrid';
+import { QuickActionsPanel } from '../components/dashboard/QuickActionsPanel';
 import { Container } from '../layouts/Container';
 import { Skeleton } from '../ui/Skeleton';
 import { Alert } from '../ui/Alert';
@@ -52,6 +53,9 @@ export default function Dashboard() {
           </Alert>
         </div>
       )}
+
+      {/* Enterprise Quick Actions Panel */}
+      <QuickActionsPanel publicSlug={profile?.publicSlug} />
 
       {/* Compliance Health Score Engine Presentation */}
       <ScoreRingDisplay score={88} level="HIGH" />

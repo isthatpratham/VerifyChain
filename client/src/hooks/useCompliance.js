@@ -4,7 +4,7 @@
  * detailed lookup, Rules Engine evaluations, and Orchestration sync.
  */
 import { useState, useCallback, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 export function useCompliance() {
   const [records, setRecords] = useState([]);
@@ -14,19 +14,11 @@ export function useCompliance() {
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState(null);
 
-  const getHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
-
   const fetchRecords = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('/api/compliance', {
-        headers: getHeaders(),
-        params,
-      });
+      const res = await api.get('/compliance', { params });
 
       if (res.data && res.data.data) {
         setRecords(res.data.data);
@@ -47,28 +39,25 @@ export function useCompliance() {
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load compliance workspace records.');
     } finally {
-
       setLoading(false);
     }
-  }, [getHeaders]);
+  }, []);
 
   const getComplianceDetail = useCallback(async (id) => {
     try {
-      const res = await axios.get(`/api/compliance/${id}`, {
-        headers: getHeaders(),
-      });
+      const res = await api.get(`/compliance/${id}`);
       return res.data?.data || null;
     } catch (err) {
       console.error(`Failed to fetch compliance detail for ID ${id}:`, err);
       return null;
     }
-  }, [getHeaders]);
+  }, []);
 
   const evaluateRules = useCallback(async () => {
     setEvaluating(true);
     setError(null);
     try {
-      const res = await axios.post('/api/compliance/rules/evaluate', {}, { headers: getHeaders() });
+      const res = await api.post('/compliance/rules/evaluate', {});
       if (res.data && res.data.success) {
         await fetchRecords();
         return res.data.data;
@@ -79,13 +68,13 @@ export function useCompliance() {
     } finally {
       setEvaluating(false);
     }
-  }, [fetchRecords, getHeaders]);
+  }, [fetchRecords]);
 
   const syncOrchestration = useCallback(async () => {
     setEvaluating(true);
     setError(null);
     try {
-      const res = await axios.post('/api/compliance/orchestrate/sync', {}, { headers: getHeaders() });
+      const res = await api.post('/compliance/orchestrate/sync', {});
       if (res.data && res.data.success) {
         await fetchRecords();
         return res.data.data;
@@ -96,12 +85,11 @@ export function useCompliance() {
     } finally {
       setEvaluating(false);
     }
-  }, [fetchRecords, getHeaders]);
+  }, [fetchRecords]);
 
   const getExplanation = useCallback(async (authority) => {
     try {
-      const res = await axios.get('/api/compliance/rules/explain', {
-        headers: getHeaders(),
+      const res = await api.get('/compliance/rules/explain', {
         params: { authority },
       });
       return res.data?.data?.explanations || [];
@@ -109,7 +97,7 @@ export function useCompliance() {
       console.error('Failed to load compliance decision explanation:', err);
       return [];
     }
-  }, [getHeaders]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');

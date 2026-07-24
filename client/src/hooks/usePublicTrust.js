@@ -4,6 +4,7 @@
  * health summaries, and verification timeline for unauthenticated visitors.
  */
 import { useState, useCallback, useEffect } from 'react';
+import api from '../services/api';
 import axios from 'axios';
 
 export function usePublicTrust(slug) {
@@ -18,7 +19,16 @@ export function usePublicTrust(slug) {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`/api/supplier-trust/public/${slug}`);
+      let res;
+      try {
+        res = await api.get(`/supplier-trust/public/${slug}`);
+      } catch (primaryErr) {
+        if (primaryErr.response && primaryErr.response.status === 404) {
+          throw primaryErr;
+        }
+        res = await axios.get(`http://localhost:5000/api/supplier-trust/public/${slug}`);
+      }
+
       if (res.data && res.data.data) {
         setProfile(res.data.data);
         if (res.data.data.trust_metadata) setMetadata(res.data.data.trust_metadata);

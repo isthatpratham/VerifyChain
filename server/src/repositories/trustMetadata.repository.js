@@ -11,10 +11,8 @@ class TrustMetadataRepository extends BaseRepository {
    */
   async findLatestByProfileId(profileId, client = defaultPrisma) {
     return this.findFirst(
-      {
-        where: { supplier_trust_profile_id: profileId },
-        orderBy: { created_at: 'desc' },
-      },
+      { supplier_trust_profile_id: profileId },
+      { orderBy: { created_at: 'desc' } },
       client
     );
   }

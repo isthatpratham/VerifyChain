@@ -116,6 +116,24 @@ enum VerificationState {
   ARCHIVED
 }
 
+enum DistributionChannel {
+  QR_CODE
+  TRUST_CARD
+  CERTIFICATE
+  EMBED_BADGE
+  WIDGET
+  PUBLIC_LINK
+  MOBILE_WALLET
+}
+
+enum DistributionStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  REVOKED
+  ARCHIVED
+}
+
 // ─── USERS ──────────────────────────────────────────────────────
 
 model User {
@@ -184,9 +202,10 @@ model SupplierTrustProfile {
   created_at           DateTime          @default(now())
   updated_at           DateTime          @updatedAt
 
-  msme_profile   MsmeProfile         @relation(fields: [msme_id], references: [id])
-  trust_metadata TrustMetadata[]
-  timeline_events TrustTimelineEvent[]
+  msme_profile              MsmeProfile                @relation(fields: [msme_id], references: [id])
+  trust_metadata            TrustMetadata[]
+  timeline_events           TrustTimelineEvent[]
+  trust_distribution_identity TrustDistributionIdentity?
 
   @@index([public_slug])
   @@index([public_identifier])
@@ -231,6 +250,64 @@ model TrustTimelineEvent {
   @@index([supplier_trust_profile_id])
   @@index([created_at])
   @@map("trust_timeline_events")
+}
+
+// ─── TRUST DISTRIBUTION IDENTITIES ──────────────────────────────
+
+model TrustDistributionIdentity {
+  id                        Int                @id @default(autoincrement())
+  supplier_trust_profile_id Int                @unique
+  public_slug               String
+  stable_distribution_id    String             @unique
+  asset_version             String             @default("v1.0.0")
+  status                    DistributionStatus @default(ACTIVE)
+  enabled_channels          String[]           @default(["PUBLIC_LINK", "QR_CODE", "TRUST_CARD"])
+  created_at                DateTime           @default(now())
+  updated_at                DateTime           @updatedAt
+
+  supplier_trust_profile SupplierTrustProfile           @relation(fields: [supplier_trust_profile_id], references: [id])
+  config                 TrustDistributionConfig?
+  timeline_events        TrustDistributionTimelineEvent[]
+
+  @@index([public_slug])
+  @@index([stable_distribution_id])
+  @@map("trust_distribution_identities")
+}
+
+// ─── TRUST DISTRIBUTION CONFIGS ──────────────────────────────────
+
+model TrustDistributionConfig {
+  id                             Int      @id @default(autoincrement())
+  trust_distribution_identity_id Int      @unique
+  branding_json                  Json?
+  visibility_json                Json?
+  token_policy_json              Json?
+  expiration_days                Int      @default(365)
+  created_at                     DateTime @default(now())
+  updated_at                     DateTime @updatedAt
+
+  trust_distribution_identity TrustDistributionIdentity @relation(fields: [trust_distribution_identity_id], references: [id])
+
+  @@map("trust_distribution_configs")
+}
+
+// ─── TRUST DISTRIBUTION TIMELINE EVENTS ───────────────────────────
+
+model TrustDistributionTimelineEvent {
+  id                             Int      @id @default(autoincrement())
+  trust_distribution_identity_id Int
+  event_type                     String
+  title                          String
+  description                    String?
+  actor                          String   @default("SYSTEM")
+  event_data                     Json?
+  created_at                     DateTime @default(now())
+
+  trust_distribution_identity TrustDistributionIdentity @relation(fields: [trust_distribution_identity_id], references: [id])
+
+  @@index([trust_distribution_identity_id])
+  @@index([created_at])
+  @@map("trust_distribution_timeline_events")
 }
 
 // ─── COMPLIANCE RECORDS ─────────────────────────────────────────

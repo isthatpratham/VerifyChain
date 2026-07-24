@@ -11,10 +11,8 @@ class HealthScoreConfigRepository extends BaseRepository {
    */
   async findActiveConfig(client = defaultPrisma) {
     return this.findFirst(
-      {
-        where: { status: 'ACTIVE' },
-        orderBy: { effective_date: 'desc' },
-      },
+      { status: 'ACTIVE' },
+      { orderBy: { effective_date: 'desc' } },
       client
     );
   }

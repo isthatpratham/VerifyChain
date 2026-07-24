@@ -32,7 +32,7 @@ class DomainEventBus extends EventEmitter {
       RECOMMENDATIONS_GENERATED: 'RecommendationsGenerated',
       RISK_ANALYSIS_COMPLETED: 'RiskAnalysisCompleted',
 
-      // Supplier Trust Foundation Events (Phase 6.1)
+      // Supplier Trust Platform Events (Phases 6.1 – 6.6)
       SUPPLIER_TRUST_PROFILE_CREATED: 'SupplierTrustProfileCreated',
       SUPPLIER_TRUST_PROFILE_UPDATED: 'SupplierTrustProfileUpdated',
       VERIFICATION_REQUESTED: 'VerificationRequested',
@@ -44,6 +44,17 @@ class DomainEventBus extends EventEmitter {
       FUTURE_QR_GENERATED: 'FutureQRGenerated',
       FUTURE_SUPPLIER_CARD_GENERATED: 'FutureSupplierCardGenerated',
       FUTURE_PUBLIC_VERIFICATION_VIEWED: 'FuturePublicVerificationViewed',
+
+      // Trust Distribution Foundation Events (Phase 7.1)
+      DISTRIBUTION_IDENTITY_CREATED: 'SupplierTrustDistributionIdentityCreated',
+      DISTRIBUTION_CONFIGURATION_UPDATED: 'SupplierTrustDistributionConfigurationUpdated',
+      DISTRIBUTION_VERSION_CREATED: 'SupplierTrustDistributionVersionCreated',
+      DISTRIBUTION_PUBLISHED: 'SupplierTrustDistributionPublished',
+      DISTRIBUTION_ARCHIVED: 'SupplierTrustDistributionArchived',
+      FUTURE_QR_REQUESTED: 'FutureQRRequested',
+      FUTURE_BADGE_REQUESTED: 'FutureBadgeRequested',
+      FUTURE_CERTIFICATE_REQUESTED: 'FutureCertificateRequested',
+      FUTURE_WIDGET_REQUESTED: 'FutureWidgetRequested',
 
       // Documents & Alerts Events
       DOCUMENT_UPLOADED: 'DocumentUploaded',

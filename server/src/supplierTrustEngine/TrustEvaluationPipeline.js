@@ -7,7 +7,6 @@ const complianceRecordRepository = require('../repositories/complianceRecord.rep
 const supplierTrustProfileRepository = require('../repositories/supplierTrustProfile.repository');
 const trustTimelineRepository = require('../repositories/trustTimeline.repository');
 
-const supplierTrustService = require('../services/supplierTrust.service');
 const healthIntelligenceService = require('../services/healthIntelligence.service');
 const domainEventBus = require('../events/DomainEventBus');
 
@@ -35,7 +34,23 @@ class TrustEvaluationPipeline {
     const msme = await msmeProfileRepository.findById(msmeId);
     if (!msme) throw new Error(`MSME Profile not found for ID ${msmeId}`);
 
-    const trustProfile = await supplierTrustService.getOrCreateTrustProfile(msmeId);
+    let trustProfile = await supplierTrustProfileRepository.findByMsmeId(msmeId);
+    if (!trustProfile) {
+      const cleanedName = msme.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const publicSlug = `${cleanedName}-${msmeId}`;
+      const publicIdentifier = `VC-TR-${msmeId}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      trustProfile = await supplierTrustProfileRepository.create({
+        msme_id: msmeId,
+        public_slug: publicSlug,
+        public_identifier: publicIdentifier,
+        display_name: msme.business_name,
+        trust_level: 'PENDING',
+        verification_state: 'DRAFT',
+        is_public: false,
+      });
+    }
+
     const records = await complianceRecordRepository.findByMsmeId(msmeId);
     const healthSnapshot = await healthIntelligenceService.getCurrentScore(msmeId);
 
@@ -57,7 +72,7 @@ class TrustEvaluationPipeline {
     const executionTimeMs = Date.now() - startTime;
 
     // 5. Database State Synchronization
-    const updatedProfile = await supplierTrustProfileRepository.update(trustProfile.id, {
+    const updatedProfile = await supplierTrustProfileRepository.update({ id: trustProfile.id }, {
       trust_level: decisionResult.trustLevel,
       verification_state: decisionResult.verificationState,
       trust_score_snapshot: overallScore,

@@ -1,17 +1,28 @@
 /**
  * ModulePlaceholdersGrid.jsx
  * Enterprise module card grid for system services.
+ * Now links directly to active Supplier Trust and Trust Distribution Hub workspaces.
  */
-import { QrCode, Bell, Lightning, HardDrives, Sliders, LockKey } from '@phosphor-icons/react';
+import { Link } from 'react-router-dom';
+import { QrCode, Bell, Lightning, HardDrives, Sliders, LockKey, ArrowRight } from '@phosphor-icons/react';
 
 export function ModulePlaceholdersGrid() {
   const modules = [
     {
-      title: 'Verified Supplier Card & QR Code',
-      description: 'Public shareable supplier verification card with scannable QR code for enterprise procurement validation.',
+      title: 'Trust Distribution Hub & QR Engine',
+      description: 'Multi-channel broadcasting platform producing dynamic signed QR codes, printable PDF certificates, and embeddable widgets.',
       status: 'Active Infrastructure',
       icon: QrCode,
       badgeColor: 'bg-[--vc-success-bg] text-[--vc-success-text]',
+      link: '/trust-distribution',
+    },
+    {
+      title: 'Supplier Trust Identity & Evaluation',
+      description: 'Comprehensive compliance standing, statutory verification status, executive summary, and audit timeline.',
+      status: 'Active Engine',
+      icon: LockKey,
+      badgeColor: 'bg-[--vc-success-bg] text-[--vc-success-text]',
+      link: '/supplier-trust',
     },
     {
       title: 'Proactive Expiry Notification Engine',
@@ -41,20 +52,13 @@ export function ModulePlaceholdersGrid() {
       icon: Sliders,
       badgeColor: 'bg-[--vc-bg-subtle] text-[--vc-text-secondary]',
     },
-    {
-      title: 'Security & Audit Log Trail',
-      description: 'Immutable verification log recording zero-auth buyer validations and statutory data refreshes.',
-      status: 'Active Log',
-      icon: LockKey,
-      badgeColor: 'bg-[--vc-bg-subtle] text-[--vc-text-secondary]',
-    },
   ];
 
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-[--vc-border]">
         <h2 className="font-[--font-heading] text-[--text-lg] font-bold text-[--vc-text-primary]">
-          Platform Modules & Services
+          Platform Workspaces & Services
         </h2>
         <span className="text-[--text-xs] font-mono text-[--vc-text-tertiary]">
           6 Services Active
@@ -87,9 +91,18 @@ export function ModulePlaceholdersGrid() {
               </div>
 
               <div className="mt-4 pt-3 border-t border-[--vc-border] flex justify-end">
-                <span className="text-[11px] font-medium text-[--vc-brand]">
-                  Integrated Service
-                </span>
+                {mod.link ? (
+                  <Link
+                    to={mod.link}
+                    className="text-[11px] font-bold text-[--vc-brand] hover:underline flex items-center gap-1"
+                  >
+                    Open Workspace <ArrowRight size={12} />
+                  </Link>
+                ) : (
+                  <span className="text-[11px] font-medium text-[--vc-text-tertiary]">
+                    Integrated Service
+                  </span>
+                )}
               </div>
             </div>
           );

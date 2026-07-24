@@ -11,10 +11,8 @@ class HealthScoreSnapshotRepository extends BaseRepository {
    */
   async findLatestByMsmeId(msmeId, client = defaultPrisma) {
     return this.findFirst(
-      {
-        where: { msme_id: msmeId },
-        orderBy: { evaluated_at: 'desc' },
-      },
+      { msme_id: msmeId },
+      { orderBy: { evaluated_at: 'desc' } },
       client
     );
   }

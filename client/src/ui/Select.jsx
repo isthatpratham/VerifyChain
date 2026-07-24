@@ -1,6 +1,7 @@
 /**
  * Select.jsx
  * Dropdown select primitive. Native select with design system styling.
+ * Supports both `options` prop array and direct `children`.
  */
 
 const BASE =
@@ -17,14 +18,24 @@ const STATES = {
   success: 'border-[--vc-success] focus-visible:ring-[--vc-success]',
 };
 
-export function Select({ state = 'default', className = '', children, ...props }) {
+export function Select({ state = 'default', className = '', options = null, children, ...props }) {
   return (
     <div className="relative">
       <select
         className={[BASE, STATES[state], className].filter(Boolean).join(' ')}
         {...props}
       >
-        {children}
+        {options
+          ? options.map((opt) => {
+              const value = typeof opt === 'object' ? opt.value : opt;
+              const label = typeof opt === 'object' ? opt.label : opt;
+              return (
+                <option key={value} value={value} className="bg-neutral-900 text-neutral-100 py-1">
+                  {label}
+                </option>
+              );
+            })
+          : children}
       </select>
       {/* Chevron icon */}
       <span

@@ -10,21 +10,21 @@ class SupplierTrustProfileRepository extends BaseRepository {
    * Find profile by MSME ID
    */
   async findByMsmeId(msmeId, client = defaultPrisma) {
-    return this.findFirst({ where: { msme_id: msmeId } }, client);
+    return this.findFirst({ msme_id: msmeId }, {}, client);
   }
 
   /**
    * Find public profile by slug
    */
   async findBySlug(slug, client = defaultPrisma) {
-    return this.findFirst({ where: { public_slug: slug } }, client);
+    return this.findFirst({ public_slug: slug }, {}, client);
   }
 
   /**
    * Find profile by public identifier
    */
   async findByIdentifier(identifier, client = defaultPrisma) {
-    return this.findFirst({ where: { public_identifier: identifier } }, client);
+    return this.findFirst({ public_identifier: identifier }, {}, client);
   }
 }
 

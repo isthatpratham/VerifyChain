@@ -16,6 +16,10 @@ import { TermsPage } from './pages/TermsPage';
 import { CookiesPage } from './pages/CookiesPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { PublicTrustPortal } from './pages/PublicTrustPortal';
+import { EmbeddableTrustWidget } from './components/public/EmbeddableTrustWidget';
+import { EmbeddableTrustBadge } from './components/public/EmbeddableTrustBadge';
+import { SupplierTrustPage } from './pages/SupplierTrustPage';
+import { TrustDistributionPage } from './pages/TrustDistributionPage';
 import NotFound from './pages/NotFound';
 
 import Login from './pages/Login';
@@ -38,8 +42,10 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* Dedicated Standalone Public Trust Portal Route */}
+            {/* Dedicated Standalone Public Trust Routes */}
             <Route path="/verify/:slug" element={<PublicTrustPortal />} />
+            <Route path="/embed/widget/:slug" element={<EmbeddableTrustWidget />} />
+            <Route path="/embed/badge/:slug" element={<EmbeddableTrustBadge />} />
 
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Landing />} />
@@ -103,6 +109,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <BusinessProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="supplier-trust"
+                element={
+                  <ProtectedRoute>
+                    <SupplierTrustPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="trust-distribution"
+                element={
+                  <ProtectedRoute>
+                    <TrustDistributionPage />
                   </ProtectedRoute>
                 }
               />

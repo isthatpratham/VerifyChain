@@ -9,7 +9,9 @@ const msmeRoutes = require('./routes/msme.routes');
 const verificationRoutes = require('./routes/verification.routes');
 const complianceRoutes = require('./routes/compliance.routes');
 const supplierTrustRoutes = require('./routes/supplierTrust.routes');
+const trustDistributionRoutes = require('./routes/trustDistribution.routes');
 const errorHandler = require('./middleware/errorHandler');
+const trustLifecycleBackfillService = require('./services/trustLifecycleBackfill.service');
 
 const app = express();
 
@@ -42,6 +44,9 @@ app.use('/api/msme/compliance', complianceRoutes);
 // Supplier Trust Platform Foundation Routes (Public & Protected)
 app.use('/api/supplier-trust', supplierTrustRoutes);
 
+// Trust Distribution Architecture Foundation Routes (Protected)
+app.use('/api/trust-distribution', trustDistributionRoutes);
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
@@ -49,6 +54,11 @@ app.use((req, res) => {
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);
+
+// Trigger Idempotent Enterprise Trust Lifecycle Startup Backfill
+trustLifecycleBackfillService.runBackfill().catch((err) => {
+  console.error('[App] Startup trust lifecycle backfill notice:', err.message);
+});
 
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;

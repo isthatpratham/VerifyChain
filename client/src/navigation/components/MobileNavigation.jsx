@@ -1,17 +1,6 @@
 /**
  * MobileNavigation.jsx
  * Full-viewport mobile navigation.
- *
- * Design decisions:
- *   - Slides DOWN from the top (beneath navbar) — not a side drawer
- *   - Backdrop dims background, click to close
- *   - Body scroll locked when open
- *   - Escape key closes
- *   - Focus trapped within panel when open
- *   - Transitions: transform + opacity (GPU only)
- *   - Never a generic drawer/sidebar — intentionally designed for VerifyChain
- *
- * DESIGN_SYSTEM.md: animated hamburger menu, thoughtfully designed.
  */
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -34,9 +23,10 @@ const PUBLIC_NAV = [
 
 
 const AUTH_NAV = [
-  { to: '/dashboard',    label: 'Dashboard'        },
-  { to: '/profile',      label: 'Business Profile'  },
-  { to: '/compliance',   label: 'Compliance'        },
+  { to: '/dashboard',          label: 'Dashboard'          },
+  { to: '/profile',            label: 'Business Profile'    },
+  { to: '/supplier-trust',     label: 'Supplier Trust'      },
+  { to: '/trust-distribution', label: 'Trust Distribution'   },
 ];
 
 const mobileItemClass = [

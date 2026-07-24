@@ -2,6 +2,7 @@
  * ComplianceHealthWorkspace.jsx
  * Primary Compliance Health Intelligence Workspace assembling score cards,
  * category breakdowns, risk analysis, recommendations, summary, and snapshot logs.
+ * 100% Light Enterprise Surface redesign. ZERO dark cards.
  */
 import { useHealthIntelligence } from '../../hooks/useHealthIntelligence';
 import { HealthScoreCard } from './HealthScoreCard';
@@ -11,16 +12,16 @@ import { StrengthsWeaknessesPanel } from './StrengthsWeaknessesPanel';
 import { RecommendationsList } from './RecommendationsList';
 import { ExecutiveSummaryPanel } from './ExecutiveSummaryPanel';
 import { ScoreSnapshotList } from './ScoreSnapshotList';
-import { Lightning, TrendUp, Cpu } from '@phosphor-icons/react';
+import { Lightning, TrendUp, Cpu, Sparkle } from '@phosphor-icons/react';
 
 export function ComplianceHealthWorkspace() {
   const { currentScore, insights, snapshots, loading, calculating, calculateScore } = useHealthIntelligence();
 
   if (loading && !insights) {
     return (
-      <div className="flex items-center justify-center p-12 text-neutral-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400 mr-3" />
-        <span>Loading Compliance Health Intelligence Workspace...</span>
+      <div className="flex items-center justify-center p-12 text-[--vc-text-secondary]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--vc-brand] mr-3" />
+        <span className="text-xs font-semibold">Loading Compliance Health Intelligence Workspace...</span>
       </div>
     );
   }
@@ -63,38 +64,49 @@ export function ComplianceHealthWorkspace() {
       {/* 5. Prioritized Action Recommendations */}
       <RecommendationsList recommendations={insights?.recommendations} />
 
-      {/* 6. Score Snapshot History & Future Extension Placeholders */}
+      {/* 6. Score Snapshot History & Upcoming Enterprise Roadmap */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <ScoreSnapshotList snapshots={snapshots} />
         </div>
 
-        {/* Future Extension Placeholders */}
-        <div className="rounded-xl bg-neutral-900/40 border border-neutral-800/80 p-5 backdrop-blur-sm space-y-3">
-          <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Future Intelligence Modules</h4>
+        {/* Enterprise Roadmap Cards */}
+        <div className="rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] p-6 shadow-sm space-y-3">
+          <div className="flex items-center gap-2 pb-2 border-b border-[--vc-border]">
+            <Sparkle size={18} className="text-[--vc-brand]" />
+            <h4 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary]">
+              Enterprise Roadmap & Modules
+            </h4>
+          </div>
 
-          <div className="p-3 rounded-lg bg-neutral-950/40 border border-neutral-800/40 flex items-center justify-between text-xs opacity-60">
-            <div className="flex items-center gap-2 text-neutral-400">
-              <TrendUp size={16} className="text-emerald-400" />
+          <div className="p-3.5 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2.5 text-[--vc-text-primary] font-medium">
+              <TrendUp size={16} className="text-[--vc-brand]" />
               <span>Historical Trend Analytics</span>
             </div>
-            <span className="text-[10px] font-mono bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded">Phase 6</span>
+            <span className="text-[10px] font-mono font-bold bg-[--vc-brand-light]/10 text-[--vc-brand] px-2 py-0.5 rounded-[--radius-sm] border border-[--vc-brand]/20">
+              Coming Soon
+            </span>
           </div>
 
-          <div className="p-3 rounded-lg bg-neutral-950/40 border border-neutral-800/40 flex items-center justify-between text-xs opacity-60">
-            <div className="flex items-center gap-2 text-neutral-400">
-              <Lightning size={16} className="text-blue-400" />
+          <div className="p-3.5 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2.5 text-[--vc-text-primary] font-medium">
+              <Lightning size={16} className="text-[--vc-brand]" />
               <span>Industry Benchmark Comparison</span>
             </div>
-            <span className="text-[10px] font-mono bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded">Phase 6</span>
+            <span className="text-[10px] font-mono font-bold bg-[--vc-brand-light]/10 text-[--vc-brand] px-2 py-0.5 rounded-[--radius-sm] border border-[--vc-brand]/20">
+              Coming Soon
+            </span>
           </div>
 
-          <div className="p-3 rounded-lg bg-neutral-950/40 border border-neutral-800/40 flex items-center justify-between text-xs opacity-60">
-            <div className="flex items-center gap-2 text-neutral-400">
-              <Cpu size={16} className="text-purple-400" />
+          <div className="p-3.5 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2.5 text-[--vc-text-primary] font-medium">
+              <Cpu size={16} className="text-[--vc-brand]" />
               <span>Predictive Score Forecasting</span>
             </div>
-            <span className="text-[10px] font-mono bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded">Phase 6</span>
+            <span className="text-[10px] font-mono font-bold bg-[--vc-brand-light]/10 text-[--vc-brand] px-2 py-0.5 rounded-[--radius-sm] border border-[--vc-brand]/20">
+              Coming Soon
+            </span>
           </div>
         </div>
       </div>

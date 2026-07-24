@@ -14,11 +14,22 @@ class BusinessEventDispatcher extends EventEmitter {
   }
 
   /**
-   * Emit an internal business event
+   * Emit an internal business event and forward to DomainEventBus
    */
   emitBusinessEvent(eventType, payload) {
     console.log(`[BusinessEventDispatcher] Event dispatched: ${eventType} (MSME ID: ${payload.msmeId || 'N/A'})`);
     this.emit(eventType, payload);
+
+    try {
+      const domainEventBus = require('./DomainEventBus');
+      if (eventType === this.EVENTS.BUSINESS_CREATED) {
+        domainEventBus.publish(domainEventBus.EVENTS.BUSINESS_CREATED, payload);
+      } else if (eventType === this.EVENTS.BUSINESS_UPDATED) {
+        domainEventBus.publish(domainEventBus.EVENTS.BUSINESS_UPDATED, payload);
+      }
+    } catch (err) {
+      console.warn(`[BusinessEventDispatcher] DomainEventBus forwarding notice: ${err.message}`);
+    }
   }
 }
 

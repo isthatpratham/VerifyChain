@@ -1,9 +1,9 @@
 /**
  * BusinessSummaryCard.jsx
- * Enterprise summary card for business details and profile setup CTA.
+ * Enterprise summary card for business details, verification status, and quick links to Trust & Distribution workspaces.
  */
 import { Link } from 'react-router-dom';
-import { Buildings, CheckCircle, ArrowRight } from '@phosphor-icons/react';
+import { Buildings, CheckCircle, ArrowRight, ShieldCheck, Broadcast } from '@phosphor-icons/react';
 
 export function BusinessSummaryCard({ profile, verificationStatus }) {
   if (!profile) {
@@ -47,12 +47,27 @@ export function BusinessSummaryCard({ profile, verificationStatus }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[--text-xs] text-[--vc-text-tertiary]">Verification Status:</span>
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text] text-[11px] font-semibold border border-[--color-success-100]">
             <CheckCircle size={13} className="text-[--vc-success]" />
             <span>{verificationStatus || 'VERIFIED'}</span>
           </span>
+
+          <Link
+            to="/supplier-trust"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-colors"
+          >
+            <ShieldCheck size={14} />
+            <span>Supplier Trust</span>
+          </Link>
+
+          <Link
+            to="/trust-distribution"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold transition-colors"
+          >
+            <Broadcast size={14} />
+            <span>Distribution Hub</span>
+          </Link>
         </div>
       </div>
 
