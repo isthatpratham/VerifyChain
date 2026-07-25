@@ -2,11 +2,21 @@ const { userRepository, msmeProfileRepository } = require('../repositories');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { generateToken } = require('../utils/jwt');
 const { DuplicateError, ValidationError } = require('../utils/dbErrors');
+const AuditPublisher = require('../audit/AuditPublisher');
 
 class AuthService {
   async registerUser({ name, email, password, phone }) {
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
+      AuditPublisher.publishAuth({
+        actorId: email,
+        msmeId: 1,
+        action: 'AUTH_REGISTER_FAILED',
+        status: 'FAILURE',
+        severity: 'WARNING',
+        details: { email, reason: 'Duplicate email address' },
+      }).catch(() => {});
+
       throw new DuplicateError('Email address is already registered');
     }
 
@@ -27,6 +37,14 @@ class AuthService {
       msmeId: null,
     });
 
+    AuditPublisher.publishAuth({
+      actorId: `USER_${newUser.id}`,
+      msmeId: 1,
+      action: 'AUTH_REGISTER_SUCCESS',
+      status: 'SUCCESS',
+      details: { email: newUser.email, role: newUser.role, name: newUser.name },
+    }).catch(() => {});
+
     return {
       token,
       user: {
@@ -41,20 +59,47 @@ class AuthService {
   async loginUser({ email, password }) {
     const user = await userRepository.findByEmail(email);
     if (!user) {
+      AuditPublisher.publishAuth({
+        actorId: email,
+        msmeId: 1,
+        action: 'AUTH_LOGIN_FAILED',
+        status: 'FAILURE',
+        severity: 'WARNING',
+        details: { email, reason: 'Invalid user email' },
+      }).catch(() => {});
+
       throw new ValidationError('Invalid email or password');
     }
 
     if (!user.is_active) {
+      AuditPublisher.publishAuth({
+        actorId: `USER_${user.id}`,
+        msmeId: 1,
+        action: 'AUTH_LOGIN_FAILED',
+        status: 'FAILURE',
+        severity: 'WARNING',
+        details: { email, reason: 'Account inactive' },
+      }).catch(() => {});
+
       throw new ValidationError('User account is inactive');
     }
 
     const isMatch = await comparePassword(password, user.password_hash);
     if (!isMatch) {
+      AuditPublisher.publishAuth({
+        actorId: `USER_${user.id}`,
+        msmeId: 1,
+        action: 'AUTH_LOGIN_FAILED',
+        status: 'FAILURE',
+        severity: 'WARNING',
+        details: { email, reason: 'Password mismatch' },
+      }).catch(() => {});
+
       throw new ValidationError('Invalid email or password');
     }
 
     const msmeProfile = await msmeProfileRepository.findByUserId(user.id);
-    const msmeId = msmeProfile ? msmeProfile.id : null;
+    const msmeId = msmeProfile ? msmeProfile.id : 1;
 
     const token = generateToken({
       id: user.id,
@@ -62,6 +107,15 @@ class AuthService {
       role: user.role,
       msmeId,
     });
+
+    AuditPublisher.publishAuth({
+      actorId: `USER_${user.id}`,
+      msmeId,
+      action: 'AUTH_LOGIN_SUCCESS',
+      status: 'SUCCESS',
+      severity: 'INFO',
+      details: { email: user.email, role: user.role, msmeId },
+    }).catch(() => {});
 
     return {
       token,
@@ -91,7 +145,7 @@ class AuthService {
     }
 
     const msmeProfile = await msmeProfileRepository.findByUserId(user.id);
-    const msmeId = msmeProfile ? msmeProfile.id : null;
+    const msmeId = msmeProfile ? msmeProfile.id : 1;
 
     return {
       id: user.id,

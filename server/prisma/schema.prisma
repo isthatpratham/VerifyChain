@@ -801,17 +801,26 @@ model IntegrationEventLog {
 }
 
 model IntegrationAuditLog {
-  id            Int      @id @default(autoincrement())
-  actor_type    String   @default("SYSTEM")
-  actor_id      String
-  action        String
-  resource_type String
-  resource_id   String
-  changes_json  Json?
-  ip_address    String?
-  user_agent    String?
-  created_at    DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  msme_id        Int?     @default(1)
+  actor_type     String   @default("SYSTEM")
+  actor_id       String
+  module         String   @default("SYSTEM")
+  action         String
+  resource_type  String
+  resource_id    String
+  severity       String   @default("INFO")
+  status         String   @default("SUCCESS")
+  correlation_id String?
+  changes_json   Json?
+  ip_address     String?
+  user_agent     String?
+  created_at     DateTime @default(now())
 
+  @@index([msme_id])
+  @@index([module])
+  @@index([severity])
+  @@index([status])
   @@index([action])
   @@index([resource_type, resource_id])
   @@index([created_at])

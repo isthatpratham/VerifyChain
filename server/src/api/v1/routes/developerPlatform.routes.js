@@ -378,19 +378,62 @@ router.delete('/connectors/connections/:id', requireScope('connector.manage'), a
  */
 router.get('/audit', requireScope('audit.read'), async (req, res) => {
   try {
-    const { search, action, resourceType } = req.query;
-    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
-    const logs = await AuditCenterService.searchAuditLogs({ msmeId, search, action, resourceType });
-    return sendSuccess(res, { statusCode: 200, data: logs });
+    const { search, action, resourceType, module, severity, status, startDate, endDate, page, limit } = req.query;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId || 1;
+    const result = await AuditCenterService.searchAuditLogs({
+      msmeId,
+      search,
+      action,
+      resourceType,
+      module,
+      severity,
+      status,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
+    return sendSuccess(res, { statusCode: 200, data: result });
   } catch (err) {
     return sendError(res, { statusCode: 500, errorCode: 'AUDIT_FETCH_ERROR', message: 'Failed to fetch audit logs.', details: err.message });
+  }
+});
+
+router.get('/audit/export', requireScope('audit.read'), async (req, res) => {
+  try {
+    const { search, action, resourceType, module, severity, status, startDate, endDate, format } = req.query;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId || 1;
+    const exportResult = await AuditCenterService.exportAuditLogs({
+      msmeId,
+      search,
+      action,
+      resourceType,
+      module,
+      severity,
+      status,
+      startDate,
+      endDate,
+      format,
+    });
+
+    if (exportResult.format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${exportResult.filename}"`);
+      return res.send(exportResult.content);
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${exportResult.filename}"`);
+    return res.send(exportResult.content);
+  } catch (err) {
+    return sendError(res, { statusCode: 500, errorCode: 'AUDIT_EXPORT_ERROR', message: 'Failed to export audit logs.', details: err.message });
   }
 });
 
 router.post('/audit/:id/bookmark', requireScope('audit.read'), async (req, res) => {
   try {
     const { note } = req.body;
-    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId;
+    const msmeId = req.msmeId || req.user?.msmeId || req.body.msmeId || 1;
     const bookmark = await AuditCenterService.bookmarkAuditLog(msmeId, req.params.id, note);
     return sendSuccess(res, { statusCode: 201, data: bookmark });
   } catch (err) {
@@ -400,7 +443,7 @@ router.post('/audit/:id/bookmark', requireScope('audit.read'), async (req, res) 
 
 router.delete('/audit/:id/bookmark', requireScope('audit.read'), async (req, res) => {
   try {
-    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId;
+    const msmeId = req.msmeId || req.user?.msmeId || req.query.msmeId || 1;
     const deleted = await AuditCenterService.removeBookmark(msmeId, req.params.id);
     return sendSuccess(res, { statusCode: 200, data: deleted });
   } catch (err) {

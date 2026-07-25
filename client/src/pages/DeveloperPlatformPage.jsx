@@ -44,7 +44,6 @@ import {
   CalendarBlank,
   ChartPie,
   TrendUp,
-  Activity,
 } from '@phosphor-icons/react';
 
 export function DeveloperPlatformPage() {
@@ -116,10 +115,22 @@ export function DeveloperPlatformPage() {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [connName, setConnName] = useState('');
   const [connEnv, setConnEnv] = useState('PRODUCTION');
+  const [connBaseUrl, setConnBaseUrl] = useState('');
   const [connApiKey, setConnApiKey] = useState('');
+  const [connTenantId, setConnTenantId] = useState('');
+  const [connectorCategory, setConnectorCategory] = useState('ALL');
+  const [connectorSearch, setConnectorSearch] = useState('');
   const [selectedConnLogs, setSelectedConnLogs] = useState(null);
   const [showConnLogsModal, setShowConnLogsModal] = useState(false);
   const [selectedConnId, setSelectedConnId] = useState(null);
+
+  // Audit Center Tab State
+  const [auditModuleFilter, setAuditModuleFilter] = useState('ALL');
+  const [auditSeverityFilter, setAuditSeverityFilter] = useState('ALL');
+  const [auditStatusFilter, setAuditStatusFilter] = useState('ALL');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [showAuditDetailsModal, setShowAuditDetailsModal] = useState(false);
+  const [selectedAuditLog, setSelectedAuditLog] = useState(null);
 
   const AVAILABLE_SCOPES = [
     { id: 'developer.read', label: 'Developer Read', desc: 'Read metrics, apps, & analytics' },
@@ -147,7 +158,7 @@ export function DeveloperPlatformPage() {
 
   useEffect(() => {
     fetchDeveloperPlatformData();
-  }, [activeTab, analyticsDays]);
+  }, [activeTab, analyticsDays, auditModuleFilter, auditSeverityFilter, auditStatusFilter, auditSearch]);
 
   const fetchDeveloperPlatformData = async () => {
     setLoading(true);
@@ -181,9 +192,17 @@ export function DeveloperPlatformPage() {
         const json = await res.json();
         if (json.success) setAnalytics(json.data);
       } else if (activeTab === 'audit') {
-        const res = await fetch('/api/v1/developer-platform/audit', { headers });
+        const queryParams = new URLSearchParams();
+        if (auditModuleFilter !== 'ALL') queryParams.append('module', auditModuleFilter);
+        if (auditSeverityFilter !== 'ALL') queryParams.append('severity', auditSeverityFilter);
+        if (auditStatusFilter !== 'ALL') queryParams.append('status', auditStatusFilter);
+        if (auditSearch) queryParams.append('search', auditSearch);
+        const res = await fetch(`/api/v1/developer-platform/audit?${queryParams.toString()}`, { headers });
         const json = await res.json();
-        if (json.success) setAuditLogs(json.data);
+        if (json.success) {
+          const logsData = json.data.logs || json.data || [];
+          setAuditLogs(logsData);
+        }
       } else if (activeTab === 'security') {
         const res = await fetch('/api/v1/developer-platform/security', { headers });
         const json = await res.json();
@@ -556,8 +575,6 @@ export function DeveloperPlatformPage() {
     }
   };
 
-  // ─── CONNECTOR MANAGEMENT ACTIONS ────────────────────────────────────────────
-
   const handleConnectProvider = async () => {
     if (!selectedProvider) return;
     try {
@@ -568,7 +585,15 @@ export function DeveloperPlatformPage() {
           providerCode: selectedProvider.providerCode,
           name: connName || `${selectedProvider.name} (${connEnv})`,
           environment: connEnv,
-          credentials: { apiKey: connApiKey || 'live_secret_key' },
+          credentials: {
+            apiKey: connApiKey || 'live_secret_key',
+            baseUrl: connBaseUrl,
+            tenantId: connTenantId,
+          },
+          config: {
+            baseUrl: connBaseUrl,
+            tenantId: connTenantId,
+          },
         }),
       });
       const json = await res.json();
@@ -576,6 +601,8 @@ export function DeveloperPlatformPage() {
         setShowConnectModal(false);
         setConnName('');
         setConnApiKey('');
+        setConnBaseUrl('');
+        setConnTenantId('');
         fetchDeveloperPlatformData();
       } else {
         alert(`Failed to connect provider: ${json.error || json.message}`);
@@ -1313,7 +1340,7 @@ export function DeveloperPlatformPage() {
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-sm text-gray-900">{conn.integration?.name || conn.metadata?.name || 'Integration'}</span>
+                              <span className="font-extrabold text-sm text-gray-900">{conn.integration?.name || conn.name || 'Integration Connection'}</span>
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                                   conn.health_status === 'HEALTHY'
@@ -1342,7 +1369,7 @@ export function DeveloperPlatformPage() {
                         </div>
 
                         <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono border-t border-b border-gray-100 py-2.5">
-                          <span>Provider: <strong>{conn.integration?.provider_code}</strong></span>
+                          <span>Provider: <strong>{conn.integration?.provider_code || conn.providerCode}</strong></span>
                           <span>Last Connected: <strong>{conn.lastConnectedFormatted || 'Never'}</strong></span>
                         </div>
 
@@ -1394,52 +1421,156 @@ export function DeveloperPlatformPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-gray-400 text-xs border border-dashed border-gray-200 rounded-2xl">
-                    No active connector connections installed yet. Choose a provider from the registry catalog below.
+                  <div className="p-10 text-center border-2 border-dashed border-gray-200 rounded-3xl bg-slate-50/50 space-y-4">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-xs">
+                      <Plugs size={28} />
+                    </div>
+                    <div className="max-w-md mx-auto space-y-1">
+                      <h4 className="font-extrabold text-base text-gray-900">No Active Integration Connections</h4>
+                      <p className="text-xs text-gray-500">
+                        Pair VerifyChain with your ERP, CRM, Accounting, or Identity provider from the registry catalog below to enable automated compliance sync and real-time health monitoring.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const catalogEl = document.getElementById('provider-registry-catalog');
+                        if (catalogEl) catalogEl.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-white border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-50 shadow-xs inline-flex items-center gap-2 transition-colors"
+                    >
+                      <MagnifyingGlass size={16} className="text-indigo-600" /> Explore Built-in Catalog ↓
+                    </button>
                   </div>
                 )}
               </div>
 
               {/* Provider Registry Catalog */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-6">
-                <div>
-                  <h3 className="font-bold text-base text-gray-900">Provider Registry Catalog</h3>
-                  <p className="text-xs text-gray-500">Available enterprise connector providers ready to pair with VerifyChain.</p>
+              <div id="provider-registry-catalog" className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-base text-gray-900">Built-in Provider Registry Catalog</h3>
+                      <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold">
+                        17 Enterprise Adapters
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">Production integration adapters built directly into VerifyChain platform metadata.</p>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="relative w-full md:w-64">
+                    <MagnifyingGlass size={16} className="absolute left-3 top-3 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search providers & capabilities..."
+                      value={connectorSearch}
+                      onChange={(e) => setConnectorSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {connectors?.availableProviders?.map((prov) => (
-                    <div key={prov.providerCode} className="p-5 border border-gray-200 rounded-2xl space-y-4 hover:border-indigo-300 transition-all flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-sm text-gray-900">{prov.name}</span>
-                          <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-mono font-bold">
-                            {prov.category}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500">{prov.description || 'Enterprise integration adapter'}</p>
+                {/* Category Filter Tabs */}
+                <div className="flex flex-wrap gap-2">
+                  {['ALL', 'ERP', 'CRM', 'ACCOUNTING', 'IDENTITY', 'COMMUNICATION', 'GENERIC', 'GOVERNMENT'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setConnectorCategory(cat)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold font-mono transition-all ${
+                        connectorCategory === cat
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
 
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {prov.capabilities?.map((cap) => (
-                            <span key={cap} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-mono font-bold">
-                              {cap}
+                {/* Providers Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {(connectors?.availableProviders || [])
+                    .filter((prov) => {
+                      const matchCat = connectorCategory === 'ALL' || (prov.category || '').toUpperCase() === connectorCategory.toUpperCase();
+                      const query = connectorSearch.toLowerCase();
+                      const matchSearch =
+                        !query ||
+                        prov.name.toLowerCase().includes(query) ||
+                        prov.providerCode.toLowerCase().includes(query) ||
+                        (prov.description && prov.description.toLowerCase().includes(query)) ||
+                        (prov.capabilities && prov.capabilities.some((c) => c.toLowerCase().includes(query)));
+                      return matchCat && matchSearch;
+                    })
+                    .map((prov) => (
+                      <div key={prov.providerCode} className="p-5 border border-gray-200 rounded-2xl space-y-4 hover:border-indigo-300 transition-all flex flex-col justify-between bg-white shadow-2xs">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 text-indigo-600">
+                                {prov.category === 'ERP' && <Database size={22} className="text-blue-600" />}
+                                {prov.category === 'CRM' && <Users size={22} className="text-emerald-600" />}
+                                {prov.category === 'ACCOUNTING' && <ChartBar size={22} className="text-amber-600" />}
+                                {prov.category === 'IDENTITY' && <LockKey size={22} className="text-purple-600" />}
+                                {prov.category === 'COMMUNICATION' && <PaperPlaneTilt size={22} className="text-indigo-600" />}
+                                {prov.category === 'GOVERNMENT' && <Globe size={22} className="text-cyan-600" />}
+                                {prov.category === 'GENERIC' && <Plugs size={22} className="text-slate-600" />}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-sm text-gray-900 block leading-tight">{prov.name}</span>
+                                <span className="text-[10px] font-mono text-gray-400 font-bold">{prov.providerCode}</span>
+                              </div>
+                            </div>
+
+                            <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-mono font-bold shrink-0">
+                              {prov.category}
                             </span>
-                          ))}
+                          </div>
+
+                          <p className="text-xs text-gray-500 line-clamp-2">{prov.description || 'Enterprise integration adapter'}</p>
+
+                          {/* Auth methods & Version */}
+                          <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 pt-1 border-t border-gray-100">
+                            <span>Auth: <strong className="text-gray-700">{prov.supportedAuthMethods ? prov.supportedAuthMethods.join(', ') : 'OAUTH2'}</strong></span>
+                            <span>Version: <strong>{prov.version || 'v1.0.0'}</strong></span>
+                          </div>
+
+                          {/* Capability Tags */}
+                          <div className="flex flex-wrap gap-1">
+                            {prov.capabilities?.slice(0, 3).map((cap) => (
+                              <span key={cap} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-mono font-bold">
+                                {cap}
+                              </span>
+                            ))}
+                            {prov.capabilities && prov.capabilities.length > 3 && (
+                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-400 text-[9px] font-mono font-bold">
+                                +{prov.capabilities.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-3">
+                          <span className="text-[10px] font-mono text-gray-400">
+                            {prov.activeConnectionCount > 0 ? (
+                              <span className="text-emerald-600 font-bold">✓ {prov.activeConnectionCount} Active Connection</span>
+                            ) : (
+                              'Available to pair'
+                            )}
+                          </span>
+
+                          <button
+                            onClick={() => {
+                              setSelectedProvider(prov);
+                              setConnName(`${prov.name} Connection`);
+                              setShowConnectModal(true);
+                            }}
+                            className="py-2 px-4 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-xs"
+                          >
+                            <Plus size={15} /> Connect Provider
+                          </button>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => {
-                          setSelectedProvider(prov);
-                          setConnName(`${prov.name} Connection`);
-                          setShowConnectModal(true);
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-                      >
-                        <Plus size={16} /> Connect Provider
-                      </button>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>
@@ -1537,7 +1668,7 @@ export function DeveloperPlatformPage() {
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                    <Activity size={18} className="text-indigo-600" /> Historical Request & Error Volume ({analyticsDays} Days Trend)
+                    <Pulse size={18} className="text-indigo-600" /> Historical Request & Error Volume ({analyticsDays} Days Trend)
                   </h4>
                   <span className="text-xs text-gray-400 font-mono">Real-Time Event Stream</span>
                 </div>
@@ -1622,6 +1753,204 @@ export function DeveloperPlatformPage() {
                     ))}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: AUDIT CENTER */}
+          {activeTab === 'audit' && (
+            <div className="space-y-6">
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-extrabold text-lg text-gray-900 flex items-center gap-2">
+                      <ListNumbers size={22} className="text-indigo-600" /> Enterprise Audit Center
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Immutable, real-time audit event logs published by platform business modules.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleExportAuditLogs('json')}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 text-gray-700 text-xs font-bold hover:bg-slate-200 flex items-center gap-1.5"
+                    >
+                      Export JSON
+                    </button>
+                    <button
+                      onClick={() => handleExportAuditLogs('csv')}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-xs flex items-center gap-1.5"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-gray-100">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <span className="text-[10px] font-bold uppercase text-gray-400 block">Total Audit Logs</span>
+                    <span className="text-xl font-black text-gray-900 mt-1 block">
+                      {Array.isArray(auditLogs) ? auditLogs.length : 0}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <span className="text-[10px] font-bold uppercase text-gray-400 block">Active Event Modules</span>
+                    <span className="text-xl font-black text-indigo-600 mt-1 block">
+                      {Array.isArray(auditLogs) ? new Set(auditLogs.map((l) => l.module)).size : 0}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <span className="text-[10px] font-bold uppercase text-gray-400 block">Security Events</span>
+                    <span className="text-xl font-black text-amber-600 mt-1 block">
+                      {Array.isArray(auditLogs) ? auditLogs.filter((l) => l.severity === 'WARNING' || l.severity === 'CRITICAL').length : 0}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <span className="text-[10px] font-bold uppercase text-gray-400 block">System Status</span>
+                    <span className="text-xs font-bold text-emerald-600 mt-2 block flex items-center gap-1">
+                      <CheckCircle size={14} /> Telemetry Active
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2 border-t border-gray-100">
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                    <div className="relative flex-1">
+                      <MagnifyingGlass size={16} className="absolute left-3.5 top-3 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by action, actor, resource ID, IP, or metadata..."
+                        value={auditSearch}
+                        onChange={(e) => setAuditSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={auditSeverityFilter}
+                        onChange={(e) => setAuditSeverityFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none font-bold text-gray-700"
+                      >
+                        <option value="ALL">All Severities</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                      </select>
+                      <select
+                        value={auditStatusFilter}
+                        onChange={(e) => setAuditStatusFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-200 rounded-xl text-xs bg-white focus:outline-none font-bold text-gray-700"
+                      >
+                        <option value="ALL">All Statuses</option>
+                        <option value="SUCCESS">SUCCESS</option>
+                        <option value="FAILURE">FAILURE</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                    {['ALL', 'AUTH', 'BUSINESS_PROFILE', 'COMPLIANCE', 'SUPPLIER_TRUST', 'DISTRIBUTION', 'DEVELOPER_PLATFORM', 'SECURITY', 'SYSTEM'].map((mod) => (
+                      <button
+                        key={mod}
+                        onClick={() => setAuditModuleFilter(mod)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${
+                          auditModuleFilter === mod
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {mod.replace('_', ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {Array.isArray(auditLogs) && auditLogs.length > 0 ? (
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-2xs">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-gray-500 font-bold uppercase text-[10px] border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3">Timestamp</th>
+                          <th className="px-4 py-3">Module</th>
+                          <th className="px-4 py-3">Action & Resource</th>
+                          <th className="px-4 py-3">Severity / Status</th>
+                          <th className="px-4 py-3">Actor / IP</th>
+                          <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {auditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className="font-mono text-gray-900 font-bold block">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                              <span className="text-[10px] text-gray-400 font-mono">{new Date(log.timestamp).toLocaleDateString()}</span>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-mono text-[10px] font-bold border border-indigo-100">
+                                {log.module || 'SYSTEM'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-gray-900">{log.action}</span>
+                              </div>
+                              <span className="text-[10px] font-mono text-gray-500 block">
+                                {log.resourceType}: {log.resourceId}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                                    log.severity === 'CRITICAL'
+                                      ? 'bg-rose-100 text-rose-800'
+                                      : log.severity === 'WARNING'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-blue-50 text-blue-700'
+                                  }`}
+                                >
+                                  {log.severity || 'INFO'}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                                    log.status === 'FAILURE' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'
+                                  }`}
+                                >
+                                  {log.status || 'SUCCESS'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className="font-mono font-bold text-gray-700 block">{log.actorId}</span>
+                              <span className="text-[10px] text-gray-400 font-mono">{log.ipAddress || '127.0.0.1'}</span>
+                            </td>
+                            <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedAuditLog(log);
+                                    setShowAuditDetailsModal(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs font-bold flex items-center gap-1"
+                                >
+                                  <Eye size={14} /> Details
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center space-y-3">
+                    <ListNumbers size={36} className="mx-auto text-gray-400" />
+                    <h4 className="font-bold text-sm text-gray-700">No Audit Events Logged</h4>
+                    <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                      All platform actions across login, business profile updates, compliance, trust evaluations, and API key management automatically publish real audit records here.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2260,6 +2589,180 @@ export function DeveloperPlatformPage() {
                   <div className="p-4 text-center text-xs text-gray-400">No recent request logs recorded for this key.</div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Connect Provider */}
+      {showConnectModal && selectedProvider && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6 my-8">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 text-indigo-600">
+                  <Plugs size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-black text-lg text-gray-900">{selectedProvider.name}</h3>
+                    <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-mono font-bold">
+                      {selectedProvider.version || 'v1.0.0'}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-gray-400">{selectedProvider.providerCode} • {selectedProvider.category}</span>
+                </div>
+              </div>
+              <button onClick={() => setShowConnectModal(false)} className="text-gray-400 hover:text-gray-600 text-xs font-bold">
+                Close
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              {selectedProvider.description}
+            </p>
+
+            {selectedProvider.docUrl && (
+              <a
+                href={selectedProvider.docUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
+              >
+                View Provider Documentation & Setup Guide ↗
+              </a>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">Connection Instance Name</label>
+                <input
+                  type="text"
+                  placeholder={`${selectedProvider.name} Connection`}
+                  value={connName}
+                  onChange={(e) => setConnName(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Environment</label>
+                  <select
+                    value={connEnv}
+                    onChange={(e) => setConnEnv(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="PRODUCTION">PRODUCTION</option>
+                    <option value="SANDBOX">SANDBOX</option>
+                    <option value="STAGING">STAGING</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Target Endpoint URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://api.provider.com"
+                    value={connBaseUrl}
+                    onChange={(e) => setConnBaseUrl(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">API Key / Secret Token (AES-256 Encrypted)</label>
+                <input
+                  type="password"
+                  placeholder="Enter API key, OAuth secret, or access token..."
+                  value={connApiKey}
+                  onChange={(e) => setConnApiKey(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+              <button
+                onClick={() => setShowConnectModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConnectProvider}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 shadow-md flex items-center gap-1.5"
+              >
+                <Plugs size={16} /> Authenticate & Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Audit Log Details */}
+      {showAuditDetailsModal && selectedAuditLog && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 my-8">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono text-[10px] font-bold">
+                    {selectedAuditLog.module || 'SYSTEM'}
+                  </span>
+                  <h3 className="font-black text-lg text-gray-900">{selectedAuditLog.action}</h3>
+                </div>
+                <span className="text-xs font-mono text-gray-400 mt-1 block">
+                  Log ID: #{selectedAuditLog.id} • Correlation ID: {selectedAuditLog.correlationId || `corr_${selectedAuditLog.id}`}
+                </span>
+              </div>
+              <button onClick={() => setShowAuditDetailsModal(false)} className="text-gray-400 hover:text-gray-600 text-xs font-bold">
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">Actor ID</span>
+                <span className="font-mono font-bold text-gray-900 mt-0.5 block">{selectedAuditLog.actorId}</span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">Severity / Status</span>
+                <span className="font-mono font-bold text-indigo-600 mt-0.5 block">
+                  {selectedAuditLog.severity || 'INFO'} • {selectedAuditLog.status || 'SUCCESS'}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">Target Resource</span>
+                <span className="font-mono font-bold text-gray-900 mt-0.5 block">
+                  {selectedAuditLog.resourceType}: {selectedAuditLog.resourceId}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">IP Address</span>
+                <span className="font-mono font-bold text-gray-900 mt-0.5 block">{selectedAuditLog.ipAddress || '127.0.0.1'}</span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 sm:col-span-2">
+                <span className="text-[10px] text-gray-400 font-bold uppercase block">User Agent</span>
+                <span className="font-mono text-[11px] text-gray-700 mt-0.5 block truncate">{selectedAuditLog.userAgent || 'VerifyChain-Client/1.0'}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-gray-700 block mb-1">Telemetry Payload & Metadata (JSON)</label>
+              <pre className="bg-slate-900 text-slate-100 p-4 rounded-2xl text-[11px] font-mono overflow-x-auto max-h-60">
+                {JSON.stringify(selectedAuditLog.changesJson || selectedAuditLog, null, 2)}
+              </pre>
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+              <button
+                onClick={() => setShowAuditDetailsModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+              >
+                Close Drawer
+              </button>
             </div>
           </div>
         </div>

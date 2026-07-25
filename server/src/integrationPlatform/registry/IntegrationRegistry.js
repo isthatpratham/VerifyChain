@@ -3,6 +3,7 @@
  * Central Integration Registry infrastructure for registered providers,
  * capabilities, features, versioning, and health checking.
  */
+const { BUILTIN_PROVIDERS } = require('../../connectorPlatform/registry/builtinProviders');
 
 class IntegrationRegistry {
   constructor() {
@@ -14,56 +15,43 @@ class IntegrationRegistry {
    * Pre-register core system integration provider templates for future pluggability
    */
   registerSystemCapabilities() {
-    const defaultTemplates = [
-      {
-        providerCode: 'sap_s4hana',
-        name: 'SAP S/4HANA Enterprise Integration',
-        type: 'ERP',
-        version: 'v1.0.0',
-        capabilities: ['COMPLIANCE_SYNC', 'VENDOR_VERIFICATION', 'STRENGTH_AUDIT'],
-        supportedFeatures: ['BULK_AUDIT', 'AUTO_DISCOVERY', 'REALTIME_HEALTH'],
-        status: 'DRAFT',
-      },
-      {
-        providerCode: 'tally_prime',
-        name: 'Tally Prime MSME Accounting Bridge',
-        type: 'ERP',
-        version: 'v1.0.0',
-        capabilities: ['GST_INVOICE_SYNC', 'TAX_FILING_AUDIT'],
-        supportedFeatures: ['OFFLINE_SYNC', 'LOCAL_BRIDGE'],
-        status: 'DRAFT',
-      },
-      {
-        providerCode: 'salesforce_crm',
-        name: 'Salesforce CRM Supplier Verification',
-        type: 'CRM',
-        version: 'v1.0.0',
-        capabilities: ['SUPPLIER_TRUST_ENRICHMENT', 'BUYER_DIRECTORY_SYNC'],
-        supportedFeatures: ['WEBHOOK_PUSH', 'LIGHTNING_WIDGET'],
-        status: 'DRAFT',
-      },
-      {
-        providerCode: 'gst_portal_gov',
-        name: 'GSTN Government Verification Portal',
-        type: 'GOVERNMENT',
-        version: 'v1.0.0',
-        capabilities: ['STATUTORY_STATUS_CHECK', 'FILING_AUDIT_SYNC'],
-        supportedFeatures: ['E_WAY_BILL_AUDIT', 'GSTR_MATCHING'],
-        status: 'DRAFT',
-      },
-      {
-        providerCode: 'custom_webhook',
-        name: 'Custom Enterprise Webhook Engine',
-        type: 'WEBHOOK',
-        version: 'v1.0.0',
-        capabilities: ['EVENT_STREAMING', 'REALTIME_NOTIFICATIONS'],
-        supportedFeatures: ['HMAC_SIGNATURE', 'RETRY_EXPONENTIAL_BACKOFF'],
-        status: 'ACTIVE',
-      },
+    // 1. Register 17 built-in production enterprise providers
+    for (const prov of BUILTIN_PROVIDERS) {
+      this.registerProviderCapability({
+        providerCode: prov.providerCode,
+        name: prov.name,
+        type: prov.type,
+        category: prov.category,
+        version: prov.version,
+        capabilities: prov.capabilities,
+        supportedFeatures: Object.keys(prov.featureFlags || {}),
+        status: prov.status,
+        logo: prov.logo,
+        docUrl: prov.docUrl,
+      });
+    }
+
+    // 2. Register legacy aliases for backwards compatibility
+    const legacyAliases = [
+      { providerCode: 'sap_s4hana', targetCode: 'SAP_ERP' },
+      { providerCode: 'tally_prime', targetCode: 'TALLY_PRIME' },
+      { providerCode: 'salesforce_crm', targetCode: 'SALESFORCE_CRM' },
+      { providerCode: 'gst_portal_gov', targetCode: 'GSTIN_GOV_PORTAL' },
+      { providerCode: 'custom_webhook', targetCode: 'WEBHOOKS' },
+      { providerCode: 'sap_s4hana_mock', targetCode: 'SAP_ERP' },
+      { providerCode: 'salesforce_crm_mock', targetCode: 'SALESFORCE_CRM' },
+      { providerCode: 'gstin_gov_portal_mock', targetCode: 'GSTIN_GOV_PORTAL' },
     ];
 
-    for (const tpl of defaultTemplates) {
-      this.registerProviderCapability(tpl);
+    for (const alias of legacyAliases) {
+      const target = this.providers.get(alias.targetCode);
+      if (target && !this.providers.has(alias.providerCode)) {
+        this.providers.set(alias.providerCode, {
+          ...target,
+          providerCode: alias.providerCode,
+          registeredAt: new Date().toISOString(),
+        });
+      }
     }
   }
 

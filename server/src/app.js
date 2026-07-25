@@ -104,6 +104,19 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // ─── STARTUP INITIALIZATION ───────────────────────────────────────────────────
+const AuditPublisher = require('./audit/AuditPublisher');
+AuditPublisher.publishSystem({
+  action: 'SYSTEM_STARTUP',
+  status: 'SUCCESS',
+  details: { environment: process.env.NODE_ENV || 'development', version: 'v1.0.0' },
+}).catch(() => {});
+
+// Idempotent Provider Registry Initializer
+const { ProviderRegistryInitializer } = require('./connectorPlatform');
+ProviderRegistryInitializer.initialize().catch((err) => {
+  console.error('[App] Startup Provider Registry initialization notice:', err.message);
+});
+
 // Idempotent Trust Lifecycle Backfill
 trustLifecycleBackfillService.runBackfill().catch((err) => {
   console.error('[App] Startup trust lifecycle backfill notice:', err.message);
@@ -132,6 +145,11 @@ let server;
 
 function gracefulShutdown(signal) {
   console.log(`[Process] ${signal} received. Shutting down gracefully...`);
+  AuditPublisher.publishSystem({
+    action: 'SYSTEM_SHUTDOWN',
+    status: 'SUCCESS',
+    details: { signal },
+  }).catch(() => {});
   if (server) {
     server.close(() => {
       console.log('[Process] HTTP server closed.');

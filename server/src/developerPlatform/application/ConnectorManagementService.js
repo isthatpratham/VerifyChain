@@ -6,56 +6,102 @@
  * background synchronization, credential storage, and audit logs.
  */
 const defaultPrisma = require('../../utils/prismaClient');
-const { ConnectionManager, SynchronizationEngine, ConnectorProviderRegistry, ConnectorHealthMonitor } = require('../../connectorPlatform');
+const { ConnectionManager, SynchronizationEngine, ConnectorProviderRegistry, ProviderRegistryInitializer } = require('../../connectorPlatform');
 
 class ConnectorManagementService {
   /**
-   * Helper to ensure default integrations exist in DB for registry catalog
+   * Helper to ensure built-in providers are initialized in DB for registry catalog
    */
   async _seedDefaultIntegrations() {
-    const defaultIntegrations = [
-      { name: 'SAP S/4HANA Enterprise ERP', provider_code: 'SAP_ERP', category: 'ERP', description: 'Enterprise ERP for financial, inventory, and procurement synchronization.' },
-      { name: 'Salesforce Enterprise CRM', provider_code: 'SALESFORCE_CRM', category: 'CRM', description: 'CRM adapter for customer, account, and deal pipeline synchronization.' },
-      { name: 'GST Statutory Portal', provider_code: 'GSTIN_GOV_PORTAL', category: 'GOVERNMENT', description: 'Statutory government portal adapter for tax compliance verification.' },
-      { name: 'Tally Prime ERP', provider_code: 'TALLY_ERP', category: 'ERP', description: 'Small business ERP adapter for ledger and invoice synchronization.' },
-      { name: 'Zoho CRM Adapter', provider_code: 'ZOHO_CRM', category: 'CRM', description: 'Zoho suite CRM connector for lead and contact synchronization.' },
-    ];
-
-    for (const item of defaultIntegrations) {
-      const existing = await defaultPrisma.integration.findFirst({ where: { provider_code: item.provider_code } });
-      if (!existing) {
-        await defaultPrisma.integration.create({
-          data: {
-            name: item.name,
-            provider_code: item.provider_code,
-            category: item.category,
-            description: item.description,
-            is_active: true,
-          },
-        });
-      }
-    }
+    await ProviderRegistryInitializer.initialize(defaultPrisma);
   }
 
   /**
    * List installed connectors and available provider registry for MSME
    */
-  async listInstalledConnectors(msmeId = 1) {
+  async listInstalledConnectors(msmeId = 1, categoryFilter = null) {
     const parsedMsmeId = parseInt(msmeId, 10);
     await this._seedDefaultIntegrations();
 
+    // 1. Fetch active customer connections for this MSME
     const connections = await defaultPrisma.integrationConnection.findMany({
       where: { msme_id: parsedMsmeId },
       include: { integration: true },
       orderBy: { created_at: 'desc' },
     });
 
-    const providers = ConnectorProviderRegistry.listProviders();
+    // 2. Fetch available integration providers from database
+    const dbIntegrations = await defaultPrisma.integration.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: { id: 'asc' },
+    });
+
+    // Calculate active connection count per provider for this MSME
+    const activeConnectionsMap = new Map();
+    connections.forEach((conn) => {
+      const pCode = conn.integration?.provider_code;
+      if (pCode) {
+        activeConnectionsMap.set(pCode, (activeConnectionsMap.get(pCode) || 0) + 1);
+      }
+    });
+
+    // 3. Format providers with rich metadata
+    let providers = dbIntegrations.map((item) => {
+      const meta = item.metadata || {};
+      const activeCount = activeConnectionsMap.get(item.provider_code) || 0;
+      return {
+        id: item.id,
+        integrationId: item.integration_id,
+        providerCode: item.provider_code,
+        name: item.name,
+        category: meta.category || item.type,
+        type: item.type,
+        description: item.description,
+        logo: meta.logo || 'RestApi',
+        version: item.version,
+        status: item.status,
+        capabilities: item.capabilities || [],
+        supportedAuthMethods: meta.supportedAuthMethods || ['OAUTH2', 'API_KEY'],
+        supportedResources: meta.supportedResources || ['GeneralData'],
+        docUrl: meta.docUrl || 'https://docs.verifychain.io/connectors',
+        healthSupport: meta.healthSupport !== false,
+        webhookSupport: meta.webhookSupport || false,
+        syncSupport: meta.syncSupport || { enabled: true, modes: ['FULL', 'INCREMENTAL'] },
+        featureFlags: meta.featureFlags || {},
+        configSchema: meta.configSchema || null,
+        extensibility: meta.extensibility || {},
+        activeConnectionCount: activeCount,
+        isConnected: activeCount > 0,
+      };
+    });
+
+    // Filter by category if requested
+    if (categoryFilter && categoryFilter.toUpperCase() !== 'ALL') {
+      providers = providers.filter((p) => p.category.toUpperCase() === categoryFilter.toUpperCase());
+    }
+
+    // Combine with in-memory providers if any exist outside DB
+    const memProviders = ConnectorProviderRegistry.listProviders(categoryFilter);
+    const existingCodes = new Set(providers.map((p) => p.providerCode));
+    for (const memP of memProviders) {
+      if (!existingCodes.has(memP.providerCode)) {
+        providers.push({
+          ...memP,
+          activeConnectionCount: 0,
+          isConnected: false,
+        });
+      }
+    }
 
     return {
-      activeConnections: connections.map(c => ({
+      activeConnections: connections.map((c) => ({
         ...c,
         lastConnectedFormatted: c.last_connected_at ? new Date(c.last_connected_at).toLocaleString() : 'Never',
+        lastSyncedFormatted: c.last_synced_at ? new Date(c.last_synced_at).toLocaleString() : 'Never',
+        providerCode: c.integration?.provider_code,
+        providerName: c.integration?.name,
+        category: c.integration?.metadata?.category || c.integration?.type,
+        logo: c.integration?.metadata?.logo || 'RestApi',
       })),
       availableProviders: providers,
     };
@@ -66,18 +112,25 @@ class ConnectorManagementService {
    */
   async connectProvider({ msmeId = 1, providerCode, name, environment = 'PRODUCTION', credentials = {}, config = {} }) {
     await this._seedDefaultIntegrations();
-    const targetIntegration = await defaultPrisma.integration.findFirst({
+    let targetIntegration = await defaultPrisma.integration.findFirst({
       where: { provider_code: providerCode },
     });
 
     if (!targetIntegration) {
-      throw new Error(`Integration provider '${providerCode}' not registered.`);
+      // Case-insensitive fallback lookup
+      targetIntegration = await defaultPrisma.integration.findFirst({
+        where: { provider_code: { equals: providerCode, mode: 'insensitive' } },
+      });
+    }
+
+    if (!targetIntegration) {
+      throw new Error(`Integration provider '${providerCode}' not registered in platform catalog.`);
     }
 
     const result = await ConnectionManager.createConnection({
       integrationId: targetIntegration.id,
       name: name || `${targetIntegration.name} (${environment})`,
-      msmeId,
+      msmeId: parseInt(msmeId, 10),
       environment,
       credentials,
       config,
