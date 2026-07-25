@@ -23,6 +23,7 @@ import {
   Brain,
   TrendUp,
   Gear,
+  Folder,
 } from '@phosphor-icons/react';
 
 const NAV_SECTIONS = [
@@ -42,6 +43,7 @@ const NAV_SECTIONS = [
     group: 'COMPLIANCE',
     items: [
       { to: '/dashboard#compliance', label: 'Compliance Overview', icon: Article },
+      { to: '/document-vault', label: 'Document Vault', icon: Folder },
       { to: '/ai-compliance-intelligence', label: 'AI Intelligence', icon: Sparkle },
       { to: '/document-intelligence', label: 'Document Intelligence', icon: FileText },
       { to: '/ai-assistant', label: 'AI Compliance Copilot', icon: Brain },

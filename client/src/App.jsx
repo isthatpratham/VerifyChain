@@ -26,6 +26,7 @@ import { DocumentIntelligencePage } from './pages/DocumentIntelligencePage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { PredictiveIntelligencePage } from './pages/PredictiveIntelligencePage';
 import { AIGovernancePage } from './pages/AIGovernancePage';
+import { DocumentVaultPage } from './pages/DocumentVaultPage';
 import NotFound from './pages/NotFound';
 
 import Login from './pages/Login';
@@ -155,6 +156,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <AIGovernancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="document-vault"
+                element={
+                  <ProtectedRoute>
+                    <DocumentVaultPage />
                   </ProtectedRoute>
                 }
               />

@@ -26,6 +26,7 @@ const documentIntelligenceRoutes = require('./routes/documentIntelligence.routes
 const aiAssistantRoutes = require('./routes/aiAssistant.routes');
 const predictiveIntelligenceRoutes = require('./routes/predictiveIntelligence.routes');
 const aiGovernanceRoutes = require('./routes/aiGovernance.routes');
+const documentVaultRoutes = require('./routes/documentVault.routes');
 
 // Mount global API v1 infrastructure & auth middleware
 router.use(requestTracingMiddleware);
@@ -98,5 +99,6 @@ router.use('/document-intelligence', documentIntelligenceRoutes);
 router.use('/ai-assistant', aiAssistantRoutes);
 router.use('/predictive-intelligence', predictiveIntelligenceRoutes);
 router.use('/ai-governance', aiGovernanceRoutes);
+router.use('/vault', documentVaultRoutes);
 
 module.exports = router;

@@ -183,6 +183,7 @@ model User {
   updated_at    DateTime @updatedAt
 
   msme_profile MsmeProfile?
+  vault_assets VaultAsset[] @relation("UserVaultAssets")
 
   @@map("users")
 }
@@ -216,6 +217,7 @@ model MsmeProfile {
   rule_evaluation_logs  RuleEvaluationLog[]
   health_score_snapshots HealthScoreSnapshot[]
   supplier_trust_profile SupplierTrustProfile?
+  vault_assets          VaultAsset[]           @relation("MsmeVaultAssets")
 
   @@index([gstin])
   @@index([udyam_number])
@@ -1801,6 +1803,223 @@ model AIGovernanceAudit {
   @@index([msme_id])
   @@map("ai_governance_audits")
 }
+
+// ─── PHASE 10.1 ENTERPRISE DOCUMENT VAULT ENUMS & MODELS ────────────────────
+
+enum VaultStatus {
+  UPLOADING
+  PROCESSING
+  ANALYZED
+  VERIFIED
+  APPROVED
+  REJECTED
+  ARCHIVED
+  DELETED
+  RESTORED
+}
+
+enum VaultCategory {
+  BUSINESS
+  COMPLIANCE
+  LEGAL
+  FINANCIAL
+  IDENTITY
+  SUPPLIER
+  AI_REPORT
+  EXECUTIVE
+  AUDIT
+  TRUST
+  SYSTEM
+  CUSTOM
+}
+
+enum StorageProviderType {
+  LOCAL
+  S3
+  AZURE
+  GCP
+  CLOUDFLARE_R2
+  MINIO
+  OTHER
+}
+
+model VaultAsset {
+  id                     Int                 @id @default(autoincrement())
+  asset_id               String              @unique @default(uuid())
+  title                  String
+  display_name           String
+  original_file_name     String
+  storage_identifier     String
+  storage_provider       StorageProviderType @default(LOCAL)
+  document_type          String
+  category               VaultCategory       @default(BUSINESS)
+  owner_id               Int?
+  msme_id                Int?
+  compliance_category    String?
+  ai_analysis_reference String?
+  status                 VaultStatus         @default(UPLOADING)
+  created_by             String?
+  updated_by             String?
+  archived_flag          Boolean             @default(false)
+  deleted_flag           Boolean             @default(false)
+  retention_policy       String              @default("STANDARD_7_YEARS")
+  checksum               String
+  mime_type              String
+  file_size              Int
+  language               String              @default("en")
+  source                 String              @default("DIRECT_UPLOAD")
+  current_version        String              @default("v1.0")
+  metadata               Json?
+  created_at             DateTime            @default(now())
+  updated_at             DateTime            @updatedAt
+
+  tags                   VaultTag[]
+  audits                 VaultAssetAudit[]
+  versions               VaultDocumentVersion[]
+  lineages               VaultDocumentLineage[]
+  rollbacks              VaultRollbackOperation[]
+
+  msme_profile           MsmeProfile?        @relation("MsmeVaultAssets", fields: [msme_id], references: [id], onDelete: Cascade)
+  user                   User?               @relation("UserVaultAssets", fields: [owner_id], references: [id], onDelete: SetNull)
+
+  @@index([msme_id])
+  @@index([owner_id])
+  @@index([category])
+  @@index([status])
+  @@index([document_type])
+  @@index([asset_id])
+  @@map("vault_assets")
+}
+
+model VaultTag {
+  id         Int        @id @default(autoincrement())
+  asset_id   Int
+  tag_name   String
+  created_at DateTime   @default(now())
+
+  asset      VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@index([tag_name])
+  @@map("vault_tags")
+}
+
+model VaultAssetAudit {
+  id          Int        @id @default(autoincrement())
+  asset_id    Int
+  action      String
+  actor_id    String
+  old_status  String?
+  new_status  String?
+  details     Json?
+  ip_address String?
+  created_at  DateTime   @default(now())
+
+  asset       VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@index([action])
+  @@map("vault_asset_audits")
+}
+
+model VaultStorageConfig {
+  id                 Int                 @id @default(autoincrement())
+  provider_type      StorageProviderType @unique
+  is_active          Boolean             @default(true)
+  base_path          String?
+  bucket_name        String?
+  region             String?
+  endpoint           String?
+  encryption_enabled Boolean             @default(true)
+  config_metadata    Json?
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @updatedAt
+
+  @@map("vault_storage_configs")
+}
+
+// ─── PHASE 10.2 ENTERPRISE VERSION CONTROL MODELS ───────────────────────────
+
+model VaultDocumentVersion {
+  id                     Int                 @id @default(autoincrement())
+  version_id             String              @unique @default(uuid())
+  asset_id               Int
+  version_number         String              // e.g. "v1.0", "v1.1", "v2.0"
+  major_version          Int                 @default(1)
+  minor_version          Int                 @default(0)
+  title                  String
+  display_name           String
+  original_file_name     String
+  storage_identifier     String
+  storage_provider       StorageProviderType @default(LOCAL)
+  status                 VaultStatus         @default(VERIFIED)
+  version_tag            String              @default("PUBLISHED") // CURRENT, LATEST, DRAFT, PUBLISHED, ARCHIVED, VERIFIED, AI_PROCESSED
+  change_summary         String              @default("Initial asset creation")
+  change_reason          String?
+  changed_by             String              @default("SYSTEM")
+  ai_generated_flag      Boolean             @default(false)
+  checksum               String
+  mime_type              String
+  file_size              Int
+  metadata_snapshot      Json?
+  created_at             DateTime            @default(now())
+
+  asset                  VaultAsset          @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  changes                VaultVersionChange[]
+
+  @@index([asset_id])
+  @@index([version_number])
+  @@index([version_tag])
+  @@map("vault_document_versions")
+}
+
+model VaultVersionChange {
+  id             Int                  @id @default(autoincrement())
+  version_id     Int
+  field_name     String
+  previous_value String?
+  new_value      String?
+  change_type    String               @default("METADATA_UPDATE") // METADATA, STATUS, FILE_REPLACEMENT, AI_REANALYSIS, ROLLBACK
+  created_at     DateTime             @default(now())
+
+  version        VaultDocumentVersion @relation(fields: [version_id], references: [id], onDelete: Cascade)
+
+  @@index([version_id])
+  @@index([field_name])
+  @@map("vault_version_changes")
+}
+
+model VaultDocumentLineage {
+  id                   Int        @id @default(autoincrement())
+  asset_id             Int
+  parent_version_number String?
+  child_version_number  String
+  lineage_type         String     @default("DIRECT_REVISION") // DIRECT_REVISION, AI_DERIVATION, ROLLBACK_RESTORATION
+  description          String?
+  created_at           DateTime   @default(now())
+
+  asset                VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@map("vault_document_lineages")
+}
+
+model VaultRollbackOperation {
+  id                    Int        @id @default(autoincrement())
+  asset_id              Int
+  target_version_number String
+  new_version_number    String
+  restored_by           String     @default("SYSTEM")
+  reason                String?
+  created_at            DateTime   @default(now())
+
+  asset                 VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@map("vault_rollback_operations")
+}
+
+
 
 
 

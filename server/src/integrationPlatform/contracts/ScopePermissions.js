@@ -40,6 +40,15 @@ const SCOPES = Object.freeze({
   AI_FORECASTING_READ: 'ai.forecasting.read',
   AI_SCENARIOS_RUN: 'ai.scenarios.run',
   AI_ALERTS_READ: 'ai.alerts.read',
+
+  // ─── PHASE 10.1 ENTERPRISE DOCUMENT VAULT SCOPES ──────────────────────────
+  VAULT_READ: 'vault.read',
+  VAULT_UPLOAD: 'vault.upload',
+  VAULT_UPDATE: 'vault.update',
+  VAULT_ARCHIVE: 'vault.archive',
+  VAULT_DELETE: 'vault.delete',
+  VAULT_RESTORE: 'vault.restore',
+  VAULT_EXPORT: 'vault.export',
 });
 
 const ALL_VALID_SCOPES = new Set(Object.values(SCOPES));
