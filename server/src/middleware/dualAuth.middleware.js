@@ -70,11 +70,12 @@ function dualAuthMiddleware() {
     }
 
     if (!rawKey) {
-      return sendError(res, {
-        statusCode: 401,
-        errorCode: 'UNAUTHORIZED',
-        message: 'Authentication required. Provide a JWT Bearer token or x-api-key header.',
-      });
+      // Pass unauthenticated request through — downstream requireScope will enforce 401 or allow public access
+      req.user = null;
+      req.apiKey = null;
+      req.grantedScopes = [];
+      req.authMethod = null;
+      return next();
     }
 
     try {

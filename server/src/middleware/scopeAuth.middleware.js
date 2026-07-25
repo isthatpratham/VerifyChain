@@ -12,11 +12,21 @@ const AuditPublisher = require('../audit/AuditPublisher');
  */
 function requireScope(requiredScope) {
   return (req, res, next) => {
-    // Skip scope enforcement if route allows unauthenticated/public access and no API key was supplied
-    if (!req.apiKey && requiredScope === 'public.verify') {
+    // Skip scope enforcement if route allows unauthenticated/public access
+    if (!req.apiKey && !req.user && requiredScope === 'public.verify') {
       return next();
     }
 
+    // 1. Unauthenticated Check: return 401 Unauthorized if neither JWT user nor API key is present
+    if (!req.user && !req.apiKey) {
+      return sendError(res, {
+        statusCode: 401,
+        errorCode: 'UNAUTHORIZED',
+        message: 'Authentication required. Token or API key missing or invalid.',
+      });
+    }
+
+    // 2. Authorization Check: return 403 Forbidden if user/key lacks required scope
     if (!req.grantedScopes || !hasScope(req.grantedScopes, requiredScope)) {
       AuditPublisher.publishSecurity({
         actorId: req.user?.id ? `USER_${req.user.id}` : req.apiKey?.keyPrefix ? `KEY_${req.apiKey.keyPrefix}` : 'ANONYMOUS',

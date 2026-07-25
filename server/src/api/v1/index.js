@@ -8,6 +8,7 @@ const router = express.Router();
 
 const requestTracingMiddleware = require('../../middleware/requestTracing.middleware');
 const apiRateLimiter = require('../../middleware/apiRateLimiter.middleware');
+const dualAuthMiddleware = require('../../middleware/dualAuth.middleware');
 const openapiSpec = require('./docs/openapiSpec');
 
 const publicVerificationRoutes = require('./routes/publicVerification.routes');
@@ -19,10 +20,17 @@ const developerRoutes = require('./routes/developer.routes');
 const webhookRoutes = require('./routes/webhook.routes');
 const connectorRoutes = require('./routes/connector.routes');
 const developerPlatformRoutes = require('./routes/developerPlatform.routes');
+const aiPlatformRoutes = require('./routes/aiPlatform.routes');
+const complianceIntelligenceRoutes = require('./routes/complianceIntelligence.routes');
+const documentIntelligenceRoutes = require('./routes/documentIntelligence.routes');
+const aiAssistantRoutes = require('./routes/aiAssistant.routes');
+const predictiveIntelligenceRoutes = require('./routes/predictiveIntelligence.routes');
+const aiGovernanceRoutes = require('./routes/aiGovernance.routes');
 
-// Mount global API v1 infrastructure middleware
+// Mount global API v1 infrastructure & auth middleware
 router.use(requestTracingMiddleware);
 router.use(apiRateLimiter());
+router.use(dualAuthMiddleware());
 
 // 1. OpenAPI Specification Endpoint (JSON)
 router.get('/docs/openapi.json', (req, res) => {
@@ -84,5 +92,11 @@ router.use('/developer', developerRoutes);
 router.use('/developer-platform', developerPlatformRoutes);
 router.use('/webhooks', webhookRoutes);
 router.use('/connectors', connectorRoutes);
+router.use('/ai', aiPlatformRoutes);
+router.use('/ai-compliance', complianceIntelligenceRoutes);
+router.use('/document-intelligence', documentIntelligenceRoutes);
+router.use('/ai-assistant', aiAssistantRoutes);
+router.use('/predictive-intelligence', predictiveIntelligenceRoutes);
+router.use('/ai-governance', aiGovernanceRoutes);
 
 module.exports = router;

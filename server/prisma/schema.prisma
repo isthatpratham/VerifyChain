@@ -950,3 +950,860 @@ model NotificationPreference {
 
   @@map("notification_preferences")
 }
+
+// ─── AI PLATFORM MODELS (PHASE 9.1) ──────────────────────────────────────────
+
+model AIProvider {
+  id           Int       @id @default(autoincrement())
+  provider_code String   @unique
+  name         String
+  type         String    @default("API") // API, LOCAL, MOCK, AZURE
+  status       String    @default("ACTIVE") // ACTIVE, DISABLED, DEGRADED
+  api_key_env  String?
+  is_default   Boolean   @default(false)
+  config_json  Json?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  models       AIModel[]
+
+  @@map("ai_providers")
+}
+
+model AIModel {
+  id                   Int        @id @default(autoincrement())
+  model_code           String     @unique
+  provider_id          Int
+  provider             AIProvider @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+  name                 String
+  capabilities_json    Json?
+  context_window       Int        @default(128000)
+  prompt_cost_per_1k   Float      @default(0.0015)
+  completion_cost_per_1k Float    @default(0.0020)
+  latency_ms           Int        @default(450)
+  is_active            Boolean    @default(true)
+  is_default           Boolean    @default(false)
+  created_at           DateTime   @default(now())
+
+  @@index([provider_id])
+  @@map("ai_models")
+}
+
+model PromptTemplate {
+  id              Int             @id @default(autoincrement())
+  template_code   String          @unique
+  name            String
+  description     String?
+  category        String          @default("COMPLIANCE")
+  current_version Int             @default(1)
+  is_active       Boolean         @default(true)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+  versions        PromptVersion[]
+
+  @@map("prompt_templates")
+}
+
+model PromptVersion {
+  id                   Int            @id @default(autoincrement())
+  template_id          Int
+  template             PromptTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  version              Int
+  system_prompt        String
+  user_prompt_template String
+  output_schema_json   Json?
+  max_tokens           Int            @default(2048)
+  temperature          Float          @default(0.2)
+  created_at           DateTime       @default(now())
+
+  @@unique([template_id, version])
+  @@map("prompt_versions")
+}
+
+model AIRequestLog {
+  id                Int      @id @default(autoincrement())
+  msme_id           Int      @default(1)
+  user_id           String   @default("SYSTEM")
+  template_code     String
+  template_version  Int      @default(1)
+  provider_code     String
+  model_code        String
+  prompt_tokens     Int      @default(0)
+  completion_tokens Int      @default(0)
+  total_tokens      Int      @default(0)
+  estimated_cost    Float    @default(0.0)
+  latency_ms        Int      @default(0)
+  status            String   @default("SUCCESS") // SUCCESS, FAILURE, TIMEOUT, RATE_LIMITED
+  error_message     String?
+  correlation_id    String
+  metadata_json     Json?
+  created_at        DateTime @default(now())
+
+  @@index([msme_id])
+  @@index([provider_code])
+  @@index([model_code])
+  @@index([created_at])
+  @@map("ai_request_logs")
+}
+
+model ConversationMemory {
+  id              Int      @id @default(autoincrement())
+  msme_id         Int
+  conversation_id String
+  user_id         String
+  role            String   // system, user, assistant
+  content         String
+  metadata_json   Json?
+  created_at      DateTime @default(now())
+
+  @@index([msme_id, conversation_id])
+  @@index([created_at])
+  @@map("conversation_memories")
+}
+
+model OrganizationMemory {
+  id            Int      @id @default(autoincrement())
+  msme_id       Int
+  memory_key    String
+  memory_value  String
+  category      String   @default("PREFERENCES")
+  retention_ttl Int?     // Lifetime in seconds, null = permanent
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@unique([msme_id, memory_key])
+  @@map("organization_memories")
+}
+
+// ─── AI COMPLIANCE INTELLIGENCE MODELS (PHASE 9.2) ──────────────────────────
+
+model ComplianceRecommendation {
+  id               Int                      @id @default(autoincrement())
+  msme_id          Int                      @default(1)
+  recommendation_id String                  @unique
+  title            String
+  description      String
+  business_impact  String
+  reasoning        String
+  confidence_score Float                    @default(0.92)
+  priority         String                   @default("HIGH") // CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL
+  affected_modules Json?
+  recommended_actions Json?
+  estimated_effort String                   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  estimated_impact String                   @default("HIGH")   // LOW, MEDIUM, HIGH
+  status           String                   @default("ACTIVE") // ACTIVE, ACCEPTED, DISMISSED, RESOLVED
+  created_at       DateTime                 @default(now())
+  updated_at       DateTime                 @updatedAt
+  evidences        RecommendationEvidence[]
+
+  @@index([msme_id])
+  @@index([priority])
+  @@index([status])
+  @@map("compliance_recommendations")
+}
+
+model RecommendationEvidence {
+  id                Int                      @id @default(autoincrement())
+  recommendation_id Int
+  recommendation    ComplianceRecommendation @relation(fields: [recommendation_id], references: [id], onDelete: Cascade)
+  evidence_type     String                   // DOCUMENT, RULE, REGULATION, HISTORICAL, TELEMETRY
+  title             String
+  detail            String
+  rule_reference    String?
+  source_data_json  Json?
+  created_at        DateTime                 @default(now())
+
+  @@index([recommendation_id])
+  @@map("recommendation_evidences")
+}
+
+model RiskAssessment {
+  id                    Int          @id @default(autoincrement())
+  msme_id               Int          @unique
+  overall_risk_score    Float        @default(15.0) // 0 to 100
+  financial_risk        Float        @default(10.0)
+  operational_risk      Float        @default(15.0)
+  supplier_risk         Float        @default(12.0)
+  trust_degradation_risk Float       @default(8.0)
+  compliance_risk       Float        @default(18.0)
+  regulatory_risk       Float        @default(14.0)
+  overall_severity      String       @default("LOW") // CRITICAL, HIGH, MEDIUM, LOW
+  confidence_score      Float        @default(0.95)
+  explanation           String?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
+  factors               RiskFactor[]
+
+  @@map("risk_assessments")
+}
+
+model RiskFactor {
+  id                 Int            @id @default(autoincrement())
+  risk_assessment_id Int
+  risk_assessment    RiskAssessment @relation(fields: [risk_assessment_id], references: [id], onDelete: Cascade)
+  category           String         // FINANCIAL, OPERATIONAL, SUPPLIER, COMPLIANCE, REGULATORY
+  factor_name        String
+  description        String
+  impact_score       Float          @default(10.0)
+  mitigation_action  String?
+  created_at         DateTime       @default(now())
+
+  @@index([risk_assessment_id])
+  @@map("risk_factors")
+}
+
+model ComplianceGap {
+  id                  Int      @id @default(autoincrement())
+  msme_id             Int      @default(1)
+  gap_code            String
+  category            String   // REGISTRATION, EXPIRY, PROFILE, VERIFICATION, TRUST
+  title               String
+  description         String
+  severity            String   @default("HIGH") // CRITICAL, HIGH, MEDIUM, LOW
+  business_impact     String
+  suggested_resolution String
+  is_resolved         Boolean  @default(false)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@index([msme_id])
+  @@index([severity])
+  @@map("compliance_gaps")
+}
+
+model ExecutiveSummary {
+  id                   Int      @id @default(autoincrement())
+  msme_id              Int      @unique
+  compliance_posture   String   @default("STRONG") // STRONG, MODERATE, AT_RISK, CRITICAL
+  summary_text         String
+  top_priorities_json  Json?
+  critical_actions_json Json?
+  key_insights_json    Json?
+  confidence_score     Float    @default(0.95)
+  data_completeness    Float    @default(0.98)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@map("executive_summaries")
+}
+
+model ActionPlan {
+  id               Int      @id @default(autoincrement())
+  msme_id          Int      @default(1)
+  plan_code        String   @unique
+  title            String
+  description      String
+  category         String   @default("REMEDIATION")
+  priority         String   @default("HIGH")
+  estimated_impact String   @default("HIGH")
+  estimated_effort String   @default("MEDIUM")
+  action_steps_json Json?
+  is_completed     Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([msme_id])
+  @@index([priority])
+  @@map("action_plans")
+}
+
+model AIInsight {
+  id           Int      @id @default(autoincrement())
+  msme_id      Int      @default(1)
+  insight_code String   @unique
+  title        String
+  content      String
+  category     String   @default("COMPLIANCE")
+  impact_level String   @default("MEDIUM")
+  created_at   DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("ai_insights")
+}
+
+model RecommendationHistory {
+  id                Int      @id @default(autoincrement())
+  msme_id           Int      @default(1)
+  recommendation_id String
+  user_id           String   @default("SYSTEM")
+  action            String   // GENERATED, ACCEPTED, DISMISSED, RESOLVED
+  notes             String?
+  created_at        DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("recommendation_histories")
+}
+
+// ─── AI DOCUMENT INTELLIGENCE MODELS (PHASE 9.3) ─────────────────────────────
+
+model DocumentAnalysis {
+  id                   Int                    @id @default(autoincrement())
+  msme_id              Int                    @default(1)
+  analysis_id          String                 @unique
+  document_name        String
+  file_size            Int                    @default(102400)
+  mime_type            String                 @default("application/pdf")
+  document_type        String                 @default("GST_CERTIFICATE")
+  issuing_authority    String?                @default("GSTN Government of India")
+  category             String                 @default("TAX_REGISTRATION")
+  overall_confidence   Float                  @default(0.95)
+  processing_status    String                 @default("COMPLETED") // PENDING, PROCESSING, COMPLETED, FAILED
+  quality_score        Float                  @default(0.98)
+  review_status        String                 @default("PENDING_REVIEW") // PENDING_REVIEW, APPROVED, REJECTED, CORRECTION_REQUESTED
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  extracted_fields     ExtractedField[]
+  ocr_results          OCRResult[]
+  classifications      DocumentClassification[]
+  summaries            DocumentSummary[]
+  validations          ValidationResult[]
+  fraud_indicators     FraudIndicator[]
+  approval_decisions   ApprovalDecision[]
+  versions             DocumentVersion[]
+
+  @@index([msme_id])
+  @@index([document_type])
+  @@index([review_status])
+  @@map("document_analyses")
+}
+
+model OCRResult {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  ocr_provider         String           @default("MOCK_OCR")
+  page_count           Int              @default(1)
+  raw_text             String
+  layout_blocks_json   Json?
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@map("ocr_results")
+}
+
+model DocumentClassification {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  document_type        String
+  category             String
+  issuing_authority    String
+  language             String           @default("en")
+  quality_score        Float            @default(0.98)
+  confidence_score     Float            @default(0.96)
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@map("document_classifications")
+}
+
+model ExtractedField {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  field_key            String
+  field_label          String
+  field_value          String
+  raw_value            String?
+  confidence_score     Float            @default(0.95)
+  bounding_box_json    Json?
+  page_index           Int              @default(1)
+  is_verified          Boolean          @default(false)
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@index([field_key])
+  @@map("extracted_fields")
+}
+
+model ValidationResult {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  rule_name            String
+  status               String           @default("PASSED") // PASSED, FAILED, WARNING
+  message              String
+  severity             String           @default("INFO")
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@map("validation_results")
+}
+
+model FraudIndicator {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  indicator_code       String
+  title                String
+  description          String
+  risk_severity        String           @default("LOW") // CRITICAL, HIGH, MEDIUM, LOW
+  confidence_score     Float            @default(0.90)
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@map("fraud_indicators")
+}
+
+model DocumentSummary {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  executive_summary    String
+  key_obligations_json Json?
+  important_dates_json Json?
+  human_readable_text  String
+  created_at           DateTime         @default(now())
+
+  @@map("document_summaries")
+}
+
+model DocumentVersion {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  version_number       Int              @default(1)
+  file_hash            String
+  changes_summary      String?
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@map("document_versions")
+}
+
+model DocumentComparison {
+  id                   Int      @id @default(autoincrement())
+  source_document_id   Int
+  target_document_id   Int
+  similarity_score     Float    @default(0.95)
+  field_diffs_json     Json?
+  missing_sections_json Json?
+  created_at           DateTime @default(now())
+
+  @@map("document_comparisons")
+}
+
+model ApprovalDecision {
+  id                   Int              @id @default(autoincrement())
+  document_analysis_id Int
+  document_analysis    DocumentAnalysis @relation(fields: [document_analysis_id], references: [id], onDelete: Cascade)
+  decision             String           // APPROVED, REJECTED, CORRECTION_REQUESTED
+  reviewer_id          String           @default("SYSTEM")
+  overridden_fields_json Json?
+  notes                String?
+  created_at           DateTime         @default(now())
+
+  @@index([document_analysis_id])
+  @@map("approval_decisions")
+}
+
+model ProcessingJob {
+  id            Int      @id @default(autoincrement())
+  job_id        String   @unique
+  msme_id       Int      @default(1)
+  document_name String
+  status        String   @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED
+  error_message String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@map("processing_jobs")
+}
+
+// ─── AI COMPLIANCE ASSISTANT MODELS (PHASE 9.4) ─────────────────────────────
+
+model AssistantConversation {
+  id              Int                   @id @default(autoincrement())
+  msme_id         Int                   @default(1)
+  conversation_id String                @unique
+  user_id         String                @default("SYSTEM")
+  title           String                @default("Compliance Discussion")
+  category        String                @default("COMPLIANCE_INQUIRY")
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @updatedAt
+  messages        ConversationMessage[]
+  citations       AssistantCitation[]
+  tool_calls      ToolInvocation[]
+
+  @@index([msme_id])
+  @@index([user_id])
+  @@map("assistant_conversations")
+}
+
+model ConversationMessage {
+  id              Int                   @id @default(autoincrement())
+  conversation_id Int
+  conversation    AssistantConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender          String                // user, assistant, system
+  content         String
+  confidence_score Float                @default(0.96)
+  reasoning       String?
+  intent_code     String?
+  created_at      DateTime              @default(now())
+
+  @@index([conversation_id])
+  @@map("conversation_messages")
+}
+
+model AssistantIntent {
+  id           Int      @id @default(autoincrement())
+  intent_code  String   @unique
+  name         String
+  description  String
+  category     String   @default("GENERAL")
+  created_at   DateTime @default(now())
+
+  @@map("assistant_intents")
+}
+
+model AssistantCitation {
+  id              Int                   @id @default(autoincrement())
+  conversation_id Int
+  conversation    AssistantConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  source_type     String                // BUSINESS_PROFILE, COMPLIANCE_RECORD, DOCUMENT, AI_RECOMMENDATION, RISK_ASSESSMENT, AUDIT_EVENT
+  title           String
+  reference_id    String
+  url             String?
+  snippet         String?
+  created_at      DateTime              @default(now())
+
+  @@index([conversation_id])
+  @@map("assistant_citations")
+}
+
+model ToolInvocation {
+  id              Int                   @id @default(autoincrement())
+  conversation_id Int
+  conversation    AssistantConversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  tool_name       String
+  arguments_json  Json?
+  result_summary  String?
+  execution_ms    Int                   @default(15)
+  created_at      DateTime              @default(now())
+
+  @@index([conversation_id])
+  @@map("tool_invocations")
+}
+
+model PinnedContext {
+  id          Int      @id @default(autoincrement())
+  msme_id     Int      @default(1)
+  user_id     String   @default("SYSTEM")
+  context_key String
+  context_val String
+  created_at  DateTime @default(now())
+
+  @@unique([msme_id, user_id, context_key])
+  @@map("pinned_contexts")
+}
+
+model GeneratedReport {
+  id           Int      @id @default(autoincrement())
+  msme_id      Int      @default(1)
+  report_code  String   @unique
+  title        String
+  report_type  String   // BOARD_REPORT, EXECUTIVE_SUMMARY, AUDIT_READINESS, SUPPLIER_RISK, COMPLIANCE_GAP, TRUST_REPORT
+  content_markdown String
+  data_json    Json?
+  created_at   DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("generated_reports")
+}
+
+model AssistantFeedback {
+  id              Int      @id @default(autoincrement())
+  msme_id         Int      @default(1)
+  conversation_id String
+  rating          String   // HELPFUL, UNHELPFUL
+  feedback_text   String?
+  created_at      DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("assistant_feedbacks")
+}
+
+// ─── PREDICTIVE INTELLIGENCE MODELS (PHASE 9.5) ─────────────────────────────
+
+model Prediction {
+  id               Int      @id @default(autoincrement())
+  msme_id          Int      @default(1)
+  prediction_id    String   @unique
+  domain           String   // TRUST, RENEWAL, RISK, COMPLIANCE
+  target_metric    String
+  predicted_value  Float
+  confidence_score Float    @default(0.92)
+  time_horizon     String   // 30_DAYS, 60_DAYS, 90_DAYS
+  status           String   @default("ACTIVE") // ACTIVE, VERIFIED, EXPIRED
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([msme_id])
+  @@map("predictions")
+}
+
+model ComplianceForecast {
+  id                  Int      @id @default(autoincrement())
+  msme_id             Int      @default(1)
+  forecast_id         String   @unique
+  projected_health    Float    @default(94.5)
+  projected_risk      Float    @default(14.0)
+  filing_latency_days Float    @default(1.2)
+  forecast_json       Json?
+  created_at          DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("compliance_forecasts")
+}
+
+model ForecastFactor {
+  id            Int      @id @default(autoincrement())
+  prediction_id String
+  factor_code   String
+  title         String
+  impact_weight Float    // Positive or negative score
+  description   String?
+  created_at    DateTime @default(now())
+
+  @@index([prediction_id])
+  @@map("forecast_factors")
+}
+
+model TrendAnalysis {
+  id             Int      @id @default(autoincrement())
+  msme_id        Int      @default(1)
+  metric_name    String
+  trend_direction String  // UPWARD, STABLE, DOWNWARD
+  slope_value    Float    @default(0.0)
+  sample_count   Int      @default(30)
+  created_at     DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("trend_analyses")
+}
+
+model TrendPoint {
+  id          Int      @id @default(autoincrement())
+  msme_id     Int      @default(1)
+  metric_name String
+  value       Float
+  recorded_at DateTime @default(now())
+
+  @@index([msme_id, metric_name])
+  @@map("trend_points")
+}
+
+model RiskForecast {
+  id               Int      @id @default(autoincrement())
+  msme_id          Int      @default(1)
+  financial_risk   Float    @default(10.0)
+  operational_risk Float    @default(12.0)
+  regulatory_risk  Float    @default(15.0)
+  overall_risk     Float    @default(12.3)
+  horizon_days     Int      @default(90)
+  created_at       DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("risk_forecasts")
+}
+
+model TrustForecast {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int      @default(1)
+  current_trust      Float    @default(95.0)
+  projected_30d_trust Float   @default(96.0)
+  projected_90d_trust Float   @default(97.5)
+  degradation_risk   String   @default("LOW") // LOW, MEDIUM, HIGH
+  created_at         DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("trust_forecasts")
+}
+
+model RenewalForecast {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int      @default(1)
+  compliance_record_id Int?
+  authority          String
+  expiry_date        DateTime
+  delay_probability  Float    @default(0.08)
+  critical_risk      String   @default("LOW")
+  days_remaining     Int
+  created_at         DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("renewal_forecasts")
+}
+
+model ScenarioSimulation {
+  id              Int              @id @default(autoincrement())
+  msme_id         Int              @default(1)
+  simulation_id   String           @unique
+  title           String
+  scenario_type   String           // GST_DELAY, ISO_LAPSE, SUPPLIER_DEFAULT, TRUST_IMPROVEMENT
+  parameters_json Json?
+  created_at      DateTime         @default(now())
+  results         ScenarioResult[]
+
+  @@index([msme_id])
+  @@map("scenario_simulations")
+}
+
+model ScenarioResult {
+  id             Int                @id @default(autoincrement())
+  simulation_id  Int
+  simulation     ScenarioSimulation @relation(fields: [simulation_id], references: [id], onDelete: Cascade)
+  trust_impact   Float              // e.g. -15.0 or +5.0
+  risk_impact    Float              // e.g. +20.0 or -10.0
+  business_impact String            // HIGH, CRITICAL, MODERATE, POSITIVE
+  recommendations_json Json?
+  created_at     DateTime           @default(now())
+
+  @@index([simulation_id])
+  @@map("scenario_results")
+}
+
+model AnomalyRecord {
+  id            Int      @id @default(autoincrement())
+  msme_id       Int      @default(1)
+  anomaly_code  String
+  title         String
+  severity      String   // HIGH, MEDIUM, LOW
+  metric_name   String
+  expected_val  Float
+  actual_val    Float
+  explanation   String
+  created_at    DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("anomaly_records")
+}
+
+model EarlyWarning {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int      @default(1)
+  warning_code       String   @unique
+  title              String
+  category           String   // RENEWAL_BOTTLENECK, TRUST_DEGRADATION, NON_COMPLIANCE
+  severity           String   // CRITICAL, HIGH, MEDIUM
+  confidence_score   Float    @default(0.95)
+  time_horizon       String   // 14_DAYS, 30_DAYS
+  predicted_impact   String
+  preventive_action  String
+  created_at         DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("early_warnings")
+}
+
+model PredictionHistory {
+  id            Int      @id @default(autoincrement())
+  prediction_id String
+  predicted_val Float
+  actual_val    Float
+  accuracy_rate Float
+  evaluated_at  DateTime @default(now())
+
+  @@map("prediction_histories")
+}
+
+model PredictionFeedback {
+  id            Int      @id @default(autoincrement())
+  msme_id       Int      @default(1)
+  prediction_id String
+  is_accurate   Boolean
+  notes         String?
+  created_at    DateTime @default(now())
+
+  @@map("prediction_feedbacks")
+}
+
+// ─── AI GOVERNANCE & HARDENING MODELS (PHASE 9.6) ────────────────────────────
+
+model AIPolicy {
+  id                  Int      @id @default(autoincrement())
+  policy_code         String   @unique
+  name                String
+  description         String
+  max_token_budget    Int      @default(4096)
+  confidence_threshold Float   @default(0.85)
+  is_enforced         Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@map("ai_policies")
+}
+
+model AICostQuota {
+  id                 Int      @id @default(autoincrement())
+  msme_id            Int      @unique
+  daily_token_limit  Int      @default(100000)
+  monthly_budget_usd Float    @default(50.0)
+  current_monthly_cost Float  @default(2.40)
+  is_throttled       Boolean  @default(false)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@map("ai_cost_quotas")
+}
+
+model ProviderHealthLog {
+  id             Int      @id @default(autoincrement())
+  provider_code  String
+  status         String   // HEALTHY, DEGRADED, OUTAGE
+  latency_ms     Int      @default(120)
+  error_rate     Float    @default(0.0)
+  circuit_breaker String  @default("CLOSED") // CLOSED, OPEN, HALF_OPEN
+  recorded_at    DateTime @default(now())
+
+  @@index([provider_code])
+  @@map("provider_health_logs")
+}
+
+model AIEvaluationRun {
+  id                 Int      @id @default(autoincrement())
+  eval_id            String   @unique
+  target_module      String   // RECOMMENDATIONS, PREDICTIONS, DOCUMENTS, ASSISTANT
+  grounding_precision Float   @default(0.96)
+  extraction_accuracy Float   @default(0.98)
+  hallucination_rate Float   @default(0.01)
+  sample_size        Int      @default(50)
+  created_at         DateTime @default(now())
+
+  @@map("ai_evaluation_runs")
+}
+
+model HumanApprovalTask {
+  id             Int      @id @default(autoincrement())
+  task_id        String   @unique
+  msme_id        Int      @default(1)
+  task_type      String   // HIGH_RISK_RECOMMENDATION, EXECUTIVE_REPORT, BULK_OPERATION
+  title          String
+  description    String
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewer_id    String?
+  review_notes   String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([msme_id])
+  @@map("human_approval_tasks")
+}
+
+model AIGovernanceAudit {
+  id             Int      @id @default(autoincrement())
+  msme_id        Int      @default(1)
+  action         String   // POLICY_EVALUATED, PROVIDER_FAILOVER, OUTPUT_VALIDATED, QUOTA_EXCEEDED
+  severity       String   // INFO, WARNING, CRITICAL
+  details_json   Json?
+  created_at     DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("ai_governance_audits")
+}
+
+
+
+
+
+

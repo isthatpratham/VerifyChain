@@ -21,6 +21,11 @@ import { EmbeddableTrustBadge } from './components/public/EmbeddableTrustBadge';
 import { SupplierTrustPage } from './pages/SupplierTrustPage';
 import { TrustDistributionPage } from './pages/TrustDistributionPage';
 import { DeveloperPlatformPage } from './pages/DeveloperPlatformPage';
+import { AIComplianceIntelligencePage } from './pages/AIComplianceIntelligencePage';
+import { DocumentIntelligencePage } from './pages/DocumentIntelligencePage';
+import { AIAssistantPage } from './pages/AIAssistantPage';
+import { PredictiveIntelligencePage } from './pages/PredictiveIntelligencePage';
+import { AIGovernancePage } from './pages/AIGovernancePage';
 import NotFound from './pages/NotFound';
 
 import Login from './pages/Login';
@@ -110,6 +115,46 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <BusinessProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="ai-compliance-intelligence"
+                element={
+                  <ProtectedRoute>
+                    <AIComplianceIntelligencePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="document-intelligence"
+                element={
+                  <ProtectedRoute>
+                    <DocumentIntelligencePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="ai-assistant"
+                element={
+                  <ProtectedRoute>
+                    <AIAssistantPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="predictive-intelligence"
+                element={
+                  <ProtectedRoute>
+                    <PredictiveIntelligencePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="ai-governance"
+                element={
+                  <ProtectedRoute>
+                    <AIGovernancePage />
                   </ProtectedRoute>
                 }
               />

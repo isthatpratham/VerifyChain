@@ -18,6 +18,11 @@ import {
   Article,
   User,
   Code,
+  Sparkle,
+  FileText,
+  Brain,
+  TrendUp,
+  Gear,
 } from '@phosphor-icons/react';
 
 const NAV_SECTIONS = [
@@ -37,6 +42,11 @@ const NAV_SECTIONS = [
     group: 'COMPLIANCE',
     items: [
       { to: '/dashboard#compliance', label: 'Compliance Overview', icon: Article },
+      { to: '/ai-compliance-intelligence', label: 'AI Intelligence', icon: Sparkle },
+      { to: '/document-intelligence', label: 'Document Intelligence', icon: FileText },
+      { to: '/ai-assistant', label: 'AI Compliance Copilot', icon: Brain },
+      { to: '/predictive-intelligence', label: 'Predictive Intelligence', icon: TrendUp },
+      { to: '/ai-governance', label: 'AI Governance & Security', icon: Gear },
     ],
   },
   {

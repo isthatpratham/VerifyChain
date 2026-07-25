@@ -139,6 +139,9 @@ export function DeveloperPlatformPage() {
     { id: 'webhook.manage', label: 'Webhook Management', desc: 'Manage webhook subscriptions' },
     { id: 'connector.manage', label: 'Connector Management', desc: 'Configure integration adapters' },
     { id: 'audit.read', label: 'Audit Log Read', desc: 'Search & view audit trails' },
+    { id: 'ai.use', label: 'AI Execution', desc: 'Execute AI prompts & context generation' },
+    { id: 'ai.admin', label: 'AI Platform Admin', desc: 'Configure AI providers, models, & fallbacks' },
+    { id: 'ai.analytics', label: 'AI Analytics', desc: 'View AI token accounting & cost telemetry' },
   ];
 
   const SYSTEM_EVENTS = [
