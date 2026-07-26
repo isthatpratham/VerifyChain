@@ -184,6 +184,11 @@ model User {
 
   msme_profile MsmeProfile?
   vault_assets VaultAsset[] @relation("UserVaultAssets")
+  memberships  OrganizationMembership[]
+  user_profile UserProfile?
+  status_histories UserStatusHistory[]
+  role_assignments UserRoleAssignment[]
+  temp_assignments TemporaryAccessAssignment[]
 
   @@map("users")
 }
@@ -2468,6 +2473,729 @@ model VaultGovernanceReport {
   @@index([report_type])
   @@map("vault_governance_reports")
 }
+
+// ─── PHASE 11.1 ENTERPRISE IDENTITY & ORGANIZATION ADMINISTRATION ─────────
+
+model PlatformOrganization {
+  id                 Int                      @id @default(autoincrement())
+  organization_id    String                   @unique @default(uuid())
+  name               String
+  legal_name         String?
+  slug               String                   @unique
+  status             String                   @default("ACTIVE") // CREATED, ACTIVE, SUSPENDED, TRIAL, INACTIVE, ARCHIVED, DELETED, RESTORED
+  subscription_tier  String                   @default("ENTERPRISE")
+  storage_quota_mb   Int                      @default(10240)
+  branding_logo_url  String?
+  primary_contact_email String?
+  timezone           String                   @default("Asia/Kolkata")
+  language           String                   @default("en")
+  settings_json      Json?
+  metadata_json      Json?
+  created_at         DateTime                 @default(now())
+  updated_at         DateTime                 @updatedAt
+
+  memberships        OrganizationMembership[]
+  invitations        OrganizationInvitation[]
+  settings           OrganizationSettings?
+  status_history     OrganizationStatusHistory[]
+
+  @@index([status])
+  @@index([subscription_tier])
+  @@map("platform_organizations")
+}
+
+model OrganizationMembership {
+  id              Int                  @id @default(autoincrement())
+  membership_id   String               @unique @default(uuid())
+  organization_id Int
+  user_id         Int
+  role            String               @default("MEMBER") // OWNER, ADMIN, COMPLIANCE_OFFICER, BUSINESS_OWNER, REVIEWER, MEMBER
+  status          String               @default("ACTIVE") // ACTIVE, SUSPENDED, INACTIVE, DELETED
+  is_primary      Boolean              @default(true)
+  joined_at       DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+
+  organization    PlatformOrganization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user            User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, user_id])
+  @@index([user_id])
+  @@index([organization_id])
+  @@index([role])
+  @@map("organization_memberships")
+}
+
+model OrganizationInvitation {
+  id              Int                  @id @default(autoincrement())
+  invitation_id   String               @unique @default(uuid())
+  token           String               @unique @default(uuid())
+  email           String
+  organization_id Int
+  role            String               @default("MEMBER")
+  status          String               @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED, CANCELLED
+  invited_by      String               @default("ADMIN")
+  expires_at      DateTime
+  notes           String?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+
+  organization    PlatformOrganization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  history         InvitationHistory[]
+
+  @@index([email])
+  @@index([organization_id])
+  @@index([status])
+  @@index([token])
+  @@map("organization_invitations")
+}
+
+model UserProfile {
+  id              Int      @id @default(autoincrement())
+  user_id         Int      @unique
+  display_name    String?
+  avatar_url      String?
+  job_title       String?
+  department      String?
+  phone           String?
+  timezone        String   @default("Asia/Kolkata")
+  language        String   @default("en")
+  preferences     Json?
+  custom_metadata Json?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model OrganizationSettings {
+  id                    Int                  @id @default(autoincrement())
+  organization_id       Int                  @unique
+  timezone              String               @default("Asia/Kolkata")
+  language              String               @default("en")
+  regional_settings     Json?
+  compliance_defaults   Json?
+  notification_defaults Json?
+  security_defaults     Json?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+
+  organization          PlatformOrganization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@map("organization_settings")
+}
+
+model UserStatusHistory {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  from_status String
+  to_status   String
+  reason      String?
+  changed_by  String   @default("SYSTEM")
+  created_at  DateTime @default(now())
+
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("user_status_histories")
+}
+
+model OrganizationStatusHistory {
+  id              Int                  @id @default(autoincrement())
+  organization_id Int
+  from_status     String
+  to_status       String
+  reason          String?
+  changed_by      String               @default("SYSTEM")
+  created_at      DateTime             @default(now())
+
+  organization    PlatformOrganization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@map("organization_status_histories")
+}
+
+model InvitationHistory {
+  id            Int                    @id @default(autoincrement())
+  invitation_id Int
+  action        String                 // SENT, RESENT, ACCEPTED, REJECTED, CANCELLED, EXPIRED
+  performed_by  String                 @default("SYSTEM")
+  details       Json?
+  created_at    DateTime               @default(now())
+
+  invitation    OrganizationInvitation @relation(fields: [invitation_id], references: [id], onDelete: Cascade)
+
+  @@index([invitation_id])
+  @@map("invitation_histories")
+}
+
+// ─── PHASE 11.2 ENTERPRISE IAM & AUTHORIZATION MODELS ──────────────────────
+
+model PlatformRole {
+  id             Int                    @id @default(autoincrement())
+  role_id        String                 @unique @default(uuid())
+  code           String                 @unique
+  name           String
+  description    String?
+  scope          String                 @default("ORGANIZATION") // GLOBAL, ORGANIZATION, RESOURCE
+  parent_role_id Int?
+  is_custom      Boolean                @default(false)
+  is_active      Boolean                @default(true)
+  msme_id        Int?
+  created_at     DateTime               @default(now())
+  updated_at     DateTime               @updatedAt
+
+  parent_role    PlatformRole?          @relation("RoleInheritance", fields: [parent_role_id], references: [id])
+  child_roles    PlatformRole[]         @relation("RoleInheritance")
+  role_perms     RolePermission[]
+  user_assigns   UserRoleAssignment[]
+  temp_assigns   TemporaryAccessAssignment[]
+
+  @@index([code])
+  @@index([msme_id])
+  @@index([scope])
+  @@map("platform_roles")
+}
+
+model PlatformPermission {
+  id            Int              @id @default(autoincrement())
+  permission_id String           @unique @default(uuid())
+  code          String           @unique
+  name          String
+  category      String           @default("GENERAL") // BUSINESS, COMPLIANCE, DOCUMENT, AI, TRUST, USER, ORGANIZATIONS, AUDIT, SETTINGS
+  description   String?
+  is_deprecated Boolean          @default(false)
+  created_at    DateTime         @default(now())
+
+  role_perms    RolePermission[]
+
+  @@index([code])
+  @@index([category])
+  @@map("platform_permissions")
+}
+
+model RolePermission {
+  id            Int                @id @default(autoincrement())
+  role_id       Int
+  permission_id Int
+  created_at    DateTime           @default(now())
+
+  role          PlatformRole       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission    PlatformPermission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id])
+  @@index([role_id])
+  @@index([permission_id])
+  @@map("role_permissions")
+}
+
+model UserRoleAssignment {
+  id              Int          @id @default(autoincrement())
+  assignment_id   String       @unique @default(uuid())
+  user_id         Int
+  role_id         Int
+  organization_id Int?
+  resource_type   String?
+  resource_id     String?
+  assigned_by     String       @default("ADMIN")
+  assigned_at     DateTime     @default(now())
+
+  user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role            PlatformRole @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([role_id])
+  @@index([organization_id])
+  @@map("user_role_assignments")
+}
+
+model TemporaryAccessAssignment {
+  id              Int          @id @default(autoincrement())
+  assignment_id   String       @unique @default(uuid())
+  user_id         Int
+  role_id         Int
+  organization_id Int?
+  start_time      DateTime     @default(now())
+  end_time        DateTime
+  status          String       @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED
+  reason          String?
+  granted_by      String       @default("ADMIN")
+  created_at      DateTime     @default(now())
+
+  user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role            PlatformRole @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([end_time])
+  @@map("temporary_access_assignments")
+}
+
+model AuthorizationPolicy {
+  id             Int      @id @default(autoincrement())
+  policy_id      String   @unique @default(uuid())
+  code           String   @unique
+  name           String
+  description    String?
+  rule_type      String   // OWNER_ONLY, COMPLIANCE_MANAGER_ONLY, ORG_ADMIN_ONLY, PLATFORM_ADMIN_BYPASS
+  condition_json Json?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([code])
+  @@index([is_active])
+  @@map("authorization_policies")
+}
+
+model AccessReviewRecord {
+  id           Int      @id @default(autoincrement())
+  review_id    String   @unique @default(uuid())
+  msme_id      Int      @default(1)
+  title        String
+  reviewer_id  String   @default("ADMIN")
+  status       String   @default("COMPLETED") // IN_PROGRESS, COMPLETED, ARCHIVED
+  summary_json Json
+  reviewed_at  DateTime @default(now())
+
+  @@index([msme_id])
+  @@map("access_review_records")
+}
+
+model RoleAuditRecord {
+  id           Int      @id @default(autoincrement())
+  role_id      Int
+  action       String   // ROLE_CREATED, ROLE_UPDATED, ROLE_DELETED, PERMISSION_ASSIGNED, PERMISSION_REMOVED
+  actor_id     String   @default("ADMIN")
+  changes_json Json?
+  created_at   DateTime @default(now())
+
+  @@index([role_id])
+  @@map("role_audit_records")
+}
+
+// ─── PHASE 11.3 PLATFORM OPERATIONS & SYSTEM CONFIGURATION MODELS ─────────
+
+model PlatformSetting {
+  id            Int      @id @default(autoincrement())
+  setting_id    String   @unique @default(uuid())
+  key           String   @unique
+  value_json    Json
+  category      String   @default("GLOBAL") // GLOBAL, SECURITY, REGIONAL, COMPLIANCE, STORAGE, NOTIFICATION, SYSTEM
+  is_secret     Boolean  @default(false)
+  updated_by    String   @default("ADMIN")
+  updated_at    DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+  @@map("platform_settings")
+}
+
+model ConfigurationSnapshot {
+  id           Int      @id @default(autoincrement())
+  snapshot_id  String   @unique @default(uuid())
+  version      Int      @default(autoincrement())
+  changes_json Json
+  reason       String?
+  created_by   String   @default("ADMIN")
+  created_at   DateTime @default(now())
+
+  @@index([version])
+  @@map("configuration_snapshots")
+}
+
+model FeatureFlag {
+  id            Int      @id @default(autoincrement())
+  flag_id       String   @unique @default(uuid())
+  key           String   @unique
+  name          String
+  category      String   @default("CORE") // CORE, EXPERIMENTAL, ENTERPRISE, INTERNAL
+  scope         String   @default("GLOBAL") // GLOBAL, ORGANIZATION, SUBSCRIPTION
+  is_enabled    Boolean  @default(true)
+  description   String?
+  metadata_json Json?
+  updated_by    String   @default("ADMIN")
+  updated_at    DateTime @updatedAt
+
+  @@index([key])
+  @@index([category])
+  @@index([is_enabled])
+  @@map("feature_flags")
+}
+
+model IntegrationProvider {
+  id            Int       @id @default(autoincrement())
+  provider_id   String    @unique @default(uuid())
+  key           String    @unique
+  name          String
+  category      String    // EMAIL, SMS, STORAGE, NOTIFICATION, AI, ANALYTICS, WEBHOOK, PAYMENTS, SSO, ERP
+  status        String    @default("ACTIVE") // ACTIVE, INACTIVE, DEPRECATED
+  health_status String    @default("HEALTHY") // HEALTHY, DEGRADED, UNHEALTHY, UNCHECKED
+  config_json   Json?
+  last_check_at DateTime?
+  updated_at    DateTime  @updatedAt
+
+  @@index([key])
+  @@index([category])
+  @@map("integration_providers")
+}
+
+model StorageProviderConfig {
+  id                      Int      @id @default(autoincrement())
+  config_id               String   @unique @default(uuid())
+  provider_type           String   @unique // LOCAL, AWS_S3, AZURE_BLOB, GCS, R2, MINIO
+  name                    String
+  is_active               Boolean  @default(false)
+  credentials_masked_json Json?
+  health_status           String   @default("HEALTHY")
+  updated_by              String   @default("ADMIN")
+  updated_at              DateTime @updatedAt
+
+  @@index([provider_type])
+  @@map("storage_provider_configs")
+}
+
+model EmailProviderConfig {
+  id                    Int      @id @default(autoincrement())
+  config_id             String   @unique @default(uuid())
+  provider_type         String   @unique // SMTP, SENDGRID, AWS_SES, MAILGUN
+  sender_email          String   @default("noreply@verifychain.io")
+  sender_name           String   @default("VerifyChain Platform")
+  is_active             Boolean  @default(false)
+  settings_masked_json  Json?
+  health_status         String   @default("HEALTHY")
+  updated_at            DateTime @updatedAt
+
+  @@index([provider_type])
+  @@map("email_provider_configs")
+}
+
+model NotificationChannelConfig {
+  id            Int      @id @default(autoincrement())
+  config_id     String   @unique @default(uuid())
+  channel_type  String   @unique // EMAIL, IN_APP, SMS, PUSH
+  is_enabled    Boolean  @default(true)
+  settings_json Json?
+  updated_at    DateTime @updatedAt
+
+  @@index([channel_type])
+  @@map("notification_channel_configs")
+}
+
+model BrandingConfig {
+  id             Int      @id @default(autoincrement())
+  config_id      String   @unique @default(uuid())
+  platform_name  String   @default("VerifyChain")
+  primary_color  String   @default("#0f172a")
+  accent_color   String   @default("#4f46e5")
+  logo_url       String?
+  favicon_url    String?
+  support_email  String   @default("support@verifychain.io")
+  support_phone  String?
+  css_custom     String?
+  is_active      Boolean  @default(true)
+  updated_at     DateTime @updatedAt
+
+  @@map("branding_configs")
+}
+
+model SystemAnnouncement {
+  id              Int       @id @default(autoincrement())
+  announcement_id String    @unique @default(uuid())
+  title           String
+  message         String
+  severity        String    @default("INFO") // INFO, WARNING, CRITICAL, MAINTENANCE
+  target_audience String    @default("ALL") // ALL, ADMINS, ORGANIZATIONS
+  start_time      DateTime  @default(now())
+  end_time        DateTime?
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+
+  @@index([is_active])
+  @@index([severity])
+  @@map("system_announcements")
+}
+
+// ─── PHASE 11.4 ENTERPRISE AI ADMINISTRATION & GOVERNANCE MODELS ─────────
+
+model AIAdminProvider {
+  id                Int           @id @default(autoincrement())
+  provider_id       String        @unique @default(uuid())
+  key               String        @unique // GEMINI, OPENAI, ANTHROPIC, AZURE_OPENAI, OLLAMA, MOCK
+  name              String
+  status            String        @default("ACTIVE") // ACTIVE, INACTIVE, DEPRECATED
+  priority          Int           @default(1)
+  capabilities_json Json?
+  health_status     String        @default("HEALTHY")
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  models            AIAdminModel[]
+
+  @@index([key])
+  @@index([status])
+  @@map("ai_admin_providers")
+}
+
+model AIAdminModel {
+  id                        Int             @id @default(autoincrement())
+  model_id                  String          @unique @default(uuid())
+  key                       String          @unique // gemini-1.5-pro, gpt-4o, claude-3-5-sonnet, mock-model
+  name                      String
+  provider_id               Int
+  context_window            Int             @default(128000)
+  supports_streaming        Boolean         @default(true)
+  supports_structured_output Boolean        @default(true)
+  status                    String          @default("ACTIVE")
+  version                   String          @default("1.0.0")
+  metadata_json             Json?
+  created_at                DateTime        @default(now())
+  updated_at                DateTime        @updatedAt
+
+  provider                  AIAdminProvider @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+
+  @@index([key])
+  @@index([provider_id])
+  @@map("ai_admin_models")
+}
+
+model AIAdminPrompt {
+  id              Int                    @id @default(autoincrement())
+  prompt_id       String                 @unique @default(uuid())
+  code            String                 @unique
+  name            String
+  category        String                 @default("GENERAL") // COMPLIANCE, DOCUMENT, ASSISTANT, PREDICTIVE, GENERAL
+  description     String?
+  system_prompt   String?
+  current_version Int                    @default(1)
+  created_at      DateTime               @default(now())
+  updated_at      DateTime               @updatedAt
+
+  versions        AIAdminPromptVersion[]
+
+  @@index([code])
+  @@index([category])
+  @@map("ai_admin_prompts")
+}
+
+model AIAdminPromptVersion {
+  id             Int           @id @default(autoincrement())
+  version_id     String        @unique @default(uuid())
+  prompt_id      Int
+  version_number Int
+  template_text  String
+  variables_json Json?
+  status         String        @default("APPROVED") // DRAFT, REVIEW, APPROVED, DEPRECATED, ARCHIVED
+  author_id      String        @default("ADMIN")
+  review_notes   String?
+  created_at     DateTime      @default(now())
+
+  prompt         AIAdminPrompt @relation(fields: [prompt_id], references: [id], onDelete: Cascade)
+
+  @@unique([prompt_id, version_number])
+  @@index([prompt_id])
+  @@index([status])
+  @@map("ai_admin_prompt_versions")
+}
+
+model AIAdminConfig {
+  id         Int      @id @default(autoincrement())
+  config_id  String   @unique @default(uuid())
+  key        String   @unique
+  value_json Json
+  category   String   @default("GENERAL")
+  updated_by String   @default("ADMIN")
+  updated_at DateTime @updatedAt
+
+  @@index([key])
+  @@map("ai_admin_configs")
+}
+
+model AIAdminQuota {
+  id                  Int      @id @default(autoincrement())
+  quota_id            String   @unique @default(uuid())
+  scope_type          String   // USER, ORGANIZATION, MODULE, FEATURE
+  scope_id            String   // Global ID or identifier
+  daily_request_limit Int      @default(1000)
+  monthly_token_limit Int      @default(1000000)
+  alert_threshold_pct Int      @default(80)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@unique([scope_type, scope_id])
+  @@index([scope_type, scope_id])
+  @@map("ai_admin_quotas")
+}
+
+model AIAdminPolicy {
+  id          Int      @id @default(autoincrement())
+  policy_id   String   @unique @default(uuid())
+  code        String   @unique
+  name        String
+  rule_type   String   // CONTEXT_SIZE, PII_HANDLING, HUMAN_REVIEW, CONFIDENCE_THRESHOLD
+  rules_json  Json
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([code])
+  @@index([is_active])
+  @@map("ai_admin_policies")
+}
+
+model AIAdminAuditEvent {
+  id           Int      @id @default(autoincrement())
+  event_id     String   @unique @default(uuid())
+  action       String   // PROMPT_CREATED, PROMPT_APPROVED, POLICY_UPDATED, QUOTA_MODIFIED, PROVIDER_CONFIGURED
+  actor_id     String   @default("ADMIN")
+  details_json Json?
+  created_at   DateTime @default(now())
+
+  @@index([action])
+  @@map("ai_admin_audit_events")
+}
+
+model AIAdminUsageStat {
+  id                          Int      @id @default(autoincrement())
+  stat_id                     String   @unique @default(uuid())
+  module                      String   // COMPLIANCE, DOCUMENT, ASSISTANT, PREDICTIVE
+  requests_count              Int      @default(0)
+  prompt_tokens_estimated     Int      @default(0)
+  completion_tokens_estimated Int      @default(0)
+  period_start                DateTime @default(now())
+  period_end                  DateTime @default(now())
+
+  @@index([module])
+  @@map("ai_admin_usage_stats")
+}
+
+// ─── PHASE 11.5 ENTERPRISE MONITORING, ANALYTICS & OPERATIONAL INTELLIGENCE ────
+
+model OpPlatformMetric {
+  id              Int      @id @default(autoincrement())
+  metric_id       String   @unique @default(uuid())
+  name            String
+  category        String   // BUSINESS, USER, DOCUMENT, COMPLIANCE, AI, SECURITY, SYSTEM
+  value_float     Float    @default(0.0)
+  dimensions_json Json?
+  timestamp       DateTime @default(now())
+
+  @@index([name])
+  @@index([category])
+  @@index([timestamp])
+  @@map("op_platform_metrics")
+}
+
+model OpPlatformHealth {
+  id                Int      @id @default(autoincrement())
+  health_id         String   @unique @default(uuid())
+  module_key        String   @unique // AUTHENTICATION, IDENTITY, IAM, BUSINESS_PROFILES, COMPLIANCE_ENGINE, TRUST_PLATFORM, DOCUMENT_VAULT, AI_PLATFORM, NOTIFICATION_SERVICE, AUDIT_CENTER, SEARCH_ENGINE, STORAGE, BACKGROUND_JOBS, QUEUES
+  module_name       String
+  status            String   @default("HEALTHY") // HEALTHY, WARNING, DEGRADED, MAINTENANCE, OFFLINE, UNKNOWN
+  reason            String?  @default("All operational parameters nominal")
+  duration_sec      Int      @default(0)
+  severity          String   @default("INFO") // INFO, LOW, MEDIUM, HIGH, CRITICAL
+  recovery_guidance String?  @default("No recovery action required")
+  last_checked_at   DateTime @default(now())
+
+  @@index([module_key])
+  @@index([status])
+  @@map("op_platform_health")
+}
+
+model OpOperationalAlert {
+  id              Int       @id @default(autoincrement())
+  alert_id        String    @unique @default(uuid())
+  title           String
+  message         String
+  severity        String    @default("MEDIUM") // CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL
+  category        String    @default("SYSTEM") // STORAGE, SECURITY, SEARCH, AUDIT, RETENTION, PERMISSION, AI, CONFIGURATION
+  status          String    @default("OPEN") // OPEN, ACKNOWLEDGED, ASSIGNED, RESOLVED, CLOSED
+  acknowledged_by String?
+  assigned_to     String?
+  resolved_at     DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@index([severity])
+  @@index([status])
+  @@index([category])
+  @@map("op_operational_alerts")
+}
+
+model OpTrendSnapshot {
+  id           Int      @id @default(autoincrement())
+  snapshot_id  String   @unique @default(uuid())
+  metric_key   String   // USER_GROWTH, ORG_GROWTH, STORAGE_GROWTH, COMPLIANCE_TREND, TRUST_TREND, SEARCH_TREND, DOCUMENT_GROWTH, AI_ACTIVITY, ADMIN_ACTIVITY
+  period_type  String   // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  period_start DateTime
+  period_end   DateTime
+  data_json    Json
+  created_at   DateTime @default(now())
+
+  @@index([metric_key])
+  @@index([period_type])
+  @@map("op_trend_snapshots")
+}
+
+model OpExecutiveReport {
+  id              Int      @id @default(autoincrement())
+  report_id       String   @unique @default(uuid())
+  title           String
+  report_type     String   // EXECUTIVE_SUMMARY, PLATFORM_HEALTH, COMPLIANCE, SECURITY, AI_GOVERNANCE, DOCUMENT_REPOSITORY, ORGANIZATION, OPERATIONAL, CUSTOM
+  format          String   @default("JSON") // JSON, PDF, CSV
+  parameters_json Json?
+  summary_json    Json
+  created_by      String   @default("ADMIN")
+  created_at      DateTime @default(now())
+
+  @@index([report_type])
+  @@map("op_executive_reports")
+}
+
+model OpKPIConfiguration {
+  id            Int      @id @default(autoincrement())
+  kpi_id        String   @unique @default(uuid())
+  code          String   @unique
+  title         String
+  category      String   // HEALTH, USERS, COMPLIANCE, TRUST, DOCUMENTS, STORAGE, AI, SECURITY
+  target_value  Float    @default(100.0)
+  current_value Float    @default(0.0)
+  unit          String   @default("COUNT") // COUNT, PERCENTAGE, BYTES, MS
+  widget_type   aria_widget_type @default(CARD)
+  is_active     Boolean  @default(true)
+  updated_at    DateTime @updatedAt
+
+  @@index([code])
+  @@index([category])
+  @@map("op_kpi_configurations")
+}
+
+enum aria_widget_type {
+  CARD
+  GAUGE
+  LINE_CHART
+  BAR_CHART
+  HEATMAP
+}
+
+model OpAnalyticsSnapshot {
+  id           Int      @id @default(autoincrement())
+  snapshot_id  String   @unique @default(uuid())
+  category     String   // USER, DOCUMENT, COMPLIANCE, AI, AUDIT, SECURITY
+  metrics_json Json
+  created_at   DateTime @default(now())
+
+  @@index([category])
+  @@map("op_analytics_snapshots")
+}
+
+
+
+
+
+
 
 
 

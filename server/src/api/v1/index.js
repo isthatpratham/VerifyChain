@@ -27,6 +27,11 @@ const aiAssistantRoutes = require('./routes/aiAssistant.routes');
 const predictiveIntelligenceRoutes = require('./routes/predictiveIntelligence.routes');
 const aiGovernanceRoutes = require('./routes/aiGovernance.routes');
 const documentVaultRoutes = require('./routes/documentVault.routes');
+const adminRoutes = require('./routes/admin.routes');
+const iamRoutes = require('./routes/iam.routes');
+const operationsRoutes = require('./routes/operations.routes');
+const aiAdminRoutes = require('./routes/aiAdmin.routes');
+const operationsAnalyticsRoutes = require('./routes/operationsAnalytics.routes');
 
 // Mount global API v1 infrastructure & auth middleware
 router.use(requestTracingMiddleware);
@@ -100,5 +105,10 @@ router.use('/ai-assistant', aiAssistantRoutes);
 router.use('/predictive-intelligence', predictiveIntelligenceRoutes);
 router.use('/ai-governance', aiGovernanceRoutes);
 router.use('/vault', documentVaultRoutes);
+router.use('/admin', adminRoutes);
+router.use('/iam', iamRoutes);
+router.use('/operations', operationsRoutes);
+router.use('/ai-admin', aiAdminRoutes);
+router.use('/operations-analytics', operationsAnalyticsRoutes);
 
 module.exports = router;
