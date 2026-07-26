@@ -1869,7 +1869,13 @@ model VaultAsset {
   language               String              @default("en")
   source                 String              @default("DIRECT_UPLOAD")
   current_version        String              @default("v1.0")
+  folder_id              Int?
+  classification_id      Int?
   metadata               Json?
+  lifecycle_state        String              @default("ACTIVE")
+  legal_hold_flag        Boolean             @default(false)
+  disposition_status     String              @default("NONE")
+  retention_expires_at   DateTime?
   created_at             DateTime            @default(now())
   updated_at             DateTime            @updatedAt
 
@@ -1878,6 +1884,21 @@ model VaultAsset {
   versions               VaultDocumentVersion[]
   lineages               VaultDocumentLineage[]
   rollbacks              VaultRollbackOperation[]
+  folder                 VaultFolder?        @relation(fields: [folder_id], references: [id], onDelete: SetNull)
+  classification         VaultClassification? @relation(fields: [classification_id], references: [id], onDelete: SetNull)
+  asset_tags             VaultAssetTag[]
+  favorites              VaultFavorite[]
+  recent_activities       VaultRecentActivity[]
+  shares                 VaultShare[]
+  comments               VaultComment[]
+  watchers               VaultWatcher[]
+  review_requests        VaultReviewRequest[]
+  collaboration_activities VaultActivity[]
+  policy_assignments     VaultPolicyAssignment[]
+  retention_events       VaultRetentionEvent[]
+  hold_assets            VaultHoldAsset[]
+  archive_records        VaultArchiveRecord[]
+  disposition_records    VaultDispositionRecord[]
 
   msme_profile           MsmeProfile?        @relation("MsmeVaultAssets", fields: [msme_id], references: [id], onDelete: Cascade)
   user                   User?               @relation("UserVaultAssets", fields: [owner_id], references: [id], onDelete: SetNull)
@@ -2018,6 +2039,438 @@ model VaultRollbackOperation {
   @@index([asset_id])
   @@map("vault_rollback_operations")
 }
+
+// ─── PHASE 10.3 SMART ORGANIZATION & ENTERPRISE SEARCH MODELS ─────────────
+
+model VaultFolder {
+  id          Int           @id @default(autoincrement())
+  folder_id   String        @unique @default(uuid())
+  msme_id     Int           @default(1)
+  name        String
+  description String?
+  parent_id   Int?
+  icon        String?       @default("Folder")
+  color       String?       @default("#3B82F6")
+  is_archived Boolean       @default(false)
+  created_by  String        @default("SYSTEM")
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  parent      VaultFolder?  @relation("FolderHierarchy", fields: [parent_id], references: [id], onDelete: Cascade)
+  children    VaultFolder[] @relation("FolderHierarchy")
+  assets      VaultAsset[]
+
+  @@index([msme_id])
+  @@index([parent_id])
+  @@map("vault_folders")
+}
+
+model VaultCollection {
+  id            Int      @id @default(autoincrement())
+  collection_id String   @unique @default(uuid())
+  msme_id       Int      @default(1)
+  name          String
+  description   String?
+  filter_rules  Json
+  icon          String?  @default("Sparkle")
+  color         String?  @default("#6366F1")
+  is_system     Boolean  @default(false)
+  created_by    String   @default("SYSTEM")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([msme_id])
+  @@map("vault_collections")
+}
+
+model VaultDocumentTag {
+  id          Int             @id @default(autoincrement())
+  tag_id      String          @unique @default(uuid())
+  msme_id     Int             @default(1)
+  name        String
+  color       String          @default("#3B82F6")
+  usage_count Int             @default(0)
+  created_at  DateTime        @default(now())
+
+  asset_tags  VaultAssetTag[]
+
+  @@unique([msme_id, name])
+  @@index([msme_id])
+  @@map("vault_document_tags")
+}
+
+model VaultAssetTag {
+  id         Int              @id @default(autoincrement())
+  asset_id   Int
+  tag_id     Int
+  created_at DateTime         @default(now())
+
+  asset      VaultAsset       @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  tag        VaultDocumentTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@unique([asset_id, tag_id])
+  @@index([asset_id])
+  @@index([tag_id])
+  @@map("vault_asset_tags")
+}
+
+model VaultClassification {
+  id                Int                   @id @default(autoincrement())
+  classification_id String                @unique @default(uuid())
+  msme_id           Int                   @default(1)
+  name              String
+  code              String
+  description       String?
+  parent_id         Int?
+  icon              String?               @default("Tag")
+  created_at        DateTime              @default(now())
+
+  parent            VaultClassification?  @relation("ClassificationHierarchy", fields: [parent_id], references: [id], onDelete: Cascade)
+  children          VaultClassification[] @relation("ClassificationHierarchy")
+  assets            VaultAsset[]
+
+  @@index([msme_id])
+  @@index([code])
+  @@map("vault_classifications")
+}
+
+model VaultSavedSearch {
+  id          Int      @id @default(autoincrement())
+  search_id   String   @unique @default(uuid())
+  msme_id     Int      @default(1)
+  user_id     String
+  name        String
+  query       String?
+  filters     Json
+  is_pinned   Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  @@index([msme_id])
+  @@index([user_id])
+  @@map("vault_saved_searches")
+}
+
+model VaultFavorite {
+  id         Int        @id @default(autoincrement())
+  msme_id    Int        @default(1)
+  user_id    String
+  asset_id   Int
+  is_pinned  Boolean    @default(false)
+  created_at DateTime   @default(now())
+
+  asset      VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, asset_id])
+  @@index([msme_id])
+  @@index([user_id])
+  @@map("vault_favorites")
+}
+
+model VaultRecentActivity {
+  id            Int        @id @default(autoincrement())
+  msme_id       Int        @default(1)
+  user_id       String
+  asset_id      Int
+  activity_type String     // VIEWED, UPLOADED, MODIFIED, DOWNLOADED, SEARCHED
+  details       Json?
+  created_at    DateTime   @default(now())
+
+  asset         VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([msme_id])
+  @@index([user_id])
+  @@index([activity_type])
+  @@map("vault_recent_activities")
+}
+
+// ─── PHASE 10.4 ENTERPRISE SHARING, PERMISSIONS & COLLABORATION MODELS ────
+
+model VaultShare {
+  id            Int        @id @default(autoincrement())
+  share_id      String     @unique @default(uuid())
+  msme_id       Int        @default(1)
+  asset_id      Int
+  target_type   String     // USER, ROLE, ORGANIZATION
+  target_id     String     // User ID, Role name, or Org ID
+  access_level  String     // READ, COMMENT, EDIT, MANAGE
+  note          String?
+  expires_at    DateTime?
+  is_revoked    Boolean    @default(false)
+  shared_by     String     @default("SYSTEM")
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+
+  asset         VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@index([target_type, target_id])
+  @@index([msme_id])
+  @@map("vault_shares")
+}
+
+model VaultComment {
+  id               Int                 @id @default(autoincrement())
+  comment_id       String              @unique @default(uuid())
+  msme_id          Int                 @default(1)
+  asset_id         Int
+  parent_id        Int?
+  user_id          String
+  user_name        String              @default("User")
+  content          String
+  is_resolved      Boolean             @default(false)
+  resolved_by      String?
+  resolved_at      DateTime?
+  reactions        Json?
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+
+  asset            VaultAsset          @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  parent           VaultComment?       @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies          VaultComment[]      @relation("CommentReplies")
+  mentions         VaultMention[]
+
+  @@index([asset_id])
+  @@index([parent_id])
+  @@map("vault_comments")
+}
+
+model VaultMention {
+  id           Int          @id @default(autoincrement())
+  comment_id   Int
+  mention_type String       // USER, ROLE
+  mentioned_id String
+  created_at   DateTime     @default(now())
+
+  comment      VaultComment @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+
+  @@index([comment_id])
+  @@index([mentioned_id])
+  @@map("vault_mentions")
+}
+
+model VaultWatcher {
+  id         Int        @id @default(autoincrement())
+  msme_id    Int        @default(1)
+  asset_id   Int
+  user_id    String
+  created_at DateTime   @default(now())
+
+  asset      VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([asset_id, user_id])
+  @@index([msme_id])
+  @@index([user_id])
+  @@map("vault_watchers")
+}
+
+model VaultReviewRequest {
+  id           Int                      @id @default(autoincrement())
+  request_id   String                   @unique @default(uuid())
+  msme_id      Int                      @default(1)
+  asset_id     Int
+  requester_id String
+  title        String
+  notes        String?
+  priority     String                   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status       String                   @default("PENDING") // PENDING, ACCEPTED, DECLINED, COMPLETED, CANCELLED
+  due_date     DateTime?
+  created_at   DateTime                 @default(now())
+  updated_at   DateTime                 @updatedAt
+
+  asset        VaultAsset               @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  participants VaultReviewParticipant[]
+
+  @@index([asset_id])
+  @@index([requester_id])
+  @@index([status])
+  @@map("vault_review_requests")
+}
+
+model VaultReviewParticipant {
+  id           Int                @id @default(autoincrement())
+  request_id   Int
+  reviewer_id  String
+  status       String             @default("PENDING") // PENDING, ACCEPTED, DECLINED, COMPLETED
+  notes        String?
+  reviewed_at  DateTime?
+  created_at   DateTime           @default(now())
+
+  request      VaultReviewRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+  @@index([reviewer_id])
+  @@map("vault_review_participants")
+}
+
+model VaultActivity {
+  id            Int        @id @default(autoincrement())
+  msme_id       Int        @default(1)
+  asset_id      Int
+  actor_id      String
+  event_type    String     // SHARE_CREATED, COMMENT_ADDED, COMMENT_RESOLVED, MENTION, REVIEW_REQUESTED, PERMISSION_CHANGED, WATCHER_ADDED
+  summary       String
+  details       Json?
+  created_at    DateTime   @default(now())
+
+  asset         VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([msme_id])
+  @@index([actor_id])
+  @@index([event_type])
+  @@map("vault_activities")
+}
+
+// ─── PHASE 10.5 ENTERPRISE RECORDS MANAGEMENT, RETENTION & LEGAL HOLD ────
+
+model VaultRetentionPolicy {
+  id                  Int                     @id @default(autoincrement())
+  policy_id           String                  @unique @default(uuid())
+  msme_id             Int                     @default(1)
+  name                String
+  code                String                  @unique
+  description         String?
+  scope               String                  @default("GLOBAL") // GLOBAL, ORGANIZATION, CATEGORY, COMPLIANCE
+  category            String?
+  document_type       String?
+  retention_days      Int                     @default(365)
+  archive_action      String                  @default("AUTO_ARCHIVE") // NONE, AUTO_ARCHIVE, MOVE_COLLECTION
+  disposition_action  String                  @default("REVIEW_REQUIRED") // REVIEW_REQUIRED, AUTO_DESTROY, PERMANENT_RETAIN
+  notification_days   Int                     @default(30)
+  is_active           Boolean                 @default(true)
+  created_by          String                  @default("SYSTEM")
+  created_at          DateTime                @default(now())
+  updated_at          DateTime                @updatedAt
+
+  assignments         VaultPolicyAssignment[]
+
+  @@index([msme_id])
+  @@index([scope])
+  @@map("vault_retention_policies")
+}
+
+model VaultPolicyAssignment {
+  id           Int                  @id @default(autoincrement())
+  policy_id    Int
+  asset_id     Int
+  assigned_by  String               @default("SYSTEM")
+  assigned_at  DateTime             @default(now())
+
+  policy       VaultRetentionPolicy @relation(fields: [policy_id], references: [id], onDelete: Cascade)
+  asset        VaultAsset           @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([policy_id, asset_id])
+  @@map("vault_policy_assignments")
+}
+
+model VaultRetentionEvent {
+  id           Int        @id @default(autoincrement())
+  msme_id      Int        @default(1)
+  asset_id     Int
+  event_type   String     // POLICY_ASSIGNED, RETENTION_STARTED, RETENTION_EXTENDED, RETENTION_EXPIRED, HOLD_PLACED, HOLD_RELEASED, DISPOSITION_APPROVED, DISPOSED
+  summary      String
+  details      Json?
+  actor_id     String     @default("SYSTEM")
+  created_at   DateTime   @default(now())
+
+  asset        VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@index([event_type])
+  @@map("vault_retention_events")
+}
+
+model VaultLegalHold {
+  id             Int              @id @default(autoincrement())
+  hold_id        String           @unique @default(uuid())
+  msme_id        Int              @default(1)
+  title          String
+  case_reference String
+  reason         String
+  priority       String           @default("HIGH") // LOW, MEDIUM, HIGH, URGENT
+  status         String           @default("ACTIVE") // ACTIVE, RELEASED, EXPIRED
+  assigned_by    String           @default("SYSTEM")
+  expires_at     DateTime?
+  released_at    DateTime?
+  released_by    String?
+  notes          String?
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+
+  hold_assets    VaultHoldAsset[]
+
+  @@index([msme_id])
+  @@index([status])
+  @@index([case_reference])
+  @@map("vault_legal_holds")
+}
+
+model VaultHoldAsset {
+  id         Int            @id @default(autoincrement())
+  hold_id    Int
+  asset_id   Int
+  created_at DateTime       @default(now())
+
+  hold       VaultLegalHold @relation(fields: [hold_id], references: [id], onDelete: Cascade)
+  asset      VaultAsset     @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([hold_id, asset_id])
+  @@map("vault_hold_assets")
+}
+
+model VaultArchiveRecord {
+  id           Int        @id @default(autoincrement())
+  archive_id   String     @unique @default(uuid())
+  msme_id      Int        @default(1)
+  asset_id     Int
+  archive_type String     // MANUAL, AUTO_RETENTION, POLICY
+  storage_tier String     // STANDARD, COLD_ARCHIVE, GLACIER
+  archived_by  String     @default("SYSTEM")
+  created_at   DateTime   @default(now())
+
+  asset        VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@map("vault_archive_records")
+}
+
+model VaultDispositionRecord {
+  id              Int        @id @default(autoincrement())
+  disposition_id  String     @unique @default(uuid())
+  msme_id         Int        @default(1)
+  asset_id        Int
+  status          String     @default("PENDING_REVIEW") // PENDING_REVIEW, APPROVED, REJECTED, EXECUTED, CANCELLED
+  disposition_type String    @default("SECURE_DESTROY") // SECURE_DESTROY, PERMANENT_ARCHIVE, ANONYMIZE
+  reviewed_by     String?
+  reviewed_at     DateTime?
+  review_notes    String?
+  executed_by     String?
+  executed_at     DateTime?
+  created_at      DateTime   @default(now())
+
+  asset           VaultAsset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@index([status])
+  @@map("vault_disposition_records")
+}
+
+model VaultGovernanceReport {
+  id          Int      @id @default(autoincrement())
+  report_id   String   @unique @default(uuid())
+  msme_id     Int      @default(1)
+  title       String
+  report_type String   // RETENTION_COMPLIANCE, LEGAL_HOLDS, ARCHIVE_ACTIVITY, DISPOSITION_ACTIVITY, GOVERNANCE_HEALTH
+  data        Json
+  created_by  String   @default("SYSTEM")
+  created_at  DateTime @default(now())
+
+  @@index([msme_id])
+  @@index([report_type])
+  @@map("vault_governance_reports")
+}
+
+
+
 
 
 

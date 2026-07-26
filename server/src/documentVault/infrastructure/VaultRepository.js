@@ -240,6 +240,10 @@ class VaultRepository {
       source: r.source,
       currentVersion: r.current_version || 'v1.0',
       metadata: r.metadata || {},
+      lifecycleState: r.lifecycle_state,
+      legalHoldFlag: r.legal_hold_flag,
+      dispositionStatus: r.disposition_status,
+      retentionExpiresAt: r.retention_expires_at,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
     });

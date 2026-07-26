@@ -35,6 +35,10 @@ class VaultAsset {
     source = 'DIRECT_UPLOAD',
     currentVersion = 'v1.0',
     metadata = {},
+    lifecycleState = 'ACTIVE',
+    legalHoldFlag = false,
+    dispositionStatus = 'NONE',
+    retentionExpiresAt = null,
     createdAt = new Date(),
     updatedAt = new Date(),
   }) {
@@ -64,6 +68,10 @@ class VaultAsset {
     this.source = source;
     this.currentVersion = currentVersion || 'v1.0';
     this.metadata = metadata || {};
+    this.lifecycleState = lifecycleState;
+    this.legalHoldFlag = legalHoldFlag;
+    this.dispositionStatus = dispositionStatus;
+    this.retentionExpiresAt = retentionExpiresAt;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -96,6 +104,10 @@ class VaultAsset {
       source: this.source,
       currentVersion: this.currentVersion,
       metadata: this.metadata,
+      lifecycleState: this.lifecycleState,
+      legalHoldFlag: this.legalHoldFlag,
+      dispositionStatus: this.dispositionStatus,
+      retentionExpiresAt: this.retentionExpiresAt,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

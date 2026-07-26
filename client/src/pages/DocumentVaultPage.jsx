@@ -1,13 +1,12 @@
 /**
  * DocumentVaultPage.jsx
- * Enterprise Workspace for Phase 10.1 & Phase 10.2 Enterprise Document Vault & Version Control.
- * Features Repository Overview, Storage Statistics, Document Library, Version History, Interactive Timeline,
- * Side-by-side Comparison, Lineage Graph, and Soft Rollback.
+ * Enterprise Workspace for Phase 10.1 - 10.5 Document Vault, Version Control, Smart Organization, Collaboration & Records Governance.
  */
 
 import React, { useState, useEffect } from 'react';
 import {
   Folder,
+  FolderPlus,
   FileText,
   UploadSimple,
   HardDrive,
@@ -22,68 +21,113 @@ import {
   ShieldCheck,
   Eye,
   DownloadSimple,
-  Tag,
+  Tag as TagIcon,
   Database,
   Sparkle,
   X,
   LockKey,
   GitBranch,
   GitCommit,
-  GitMerge,
-  GitPullRequest,
   Scales,
+  Star,
+  BookmarkSimple,
+  DotsThreeVertical,
+  Export,
+  CaretRight,
+  CaretDown,
+  ShareNetwork,
+  ChatCircleText,
+  CheckSquare,
+  BellRinging,
+  Users,
+  PaperPlaneTilt,
+  Gavel,
+  ShieldWarning,
+  TrendUp,
+  Recycle,
 } from '@phosphor-icons/react';
 import axios from 'axios';
 
 export function DocumentVaultPage() {
   const [assets, setAssets] = useState([]);
   const [metrics, setMetrics] = useState(null);
+  const [governanceMetrics, setGovernanceMetrics] = useState(null);
+  const [folders, setFolders] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [savedSearches, setSavedSearches] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [policies, setPolicies] = useState([]);
+  const [legalHolds, setLegalHolds] = useState([]);
+  const [dispositions, setDispositions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   const [selectedAsset, setSelectedAsset] = useState(null);
+
+  // Bulk Selection State
+  const [selectedAssetIds, setSelectedAssetIds] = useState([]);
+
+  // Modals & Drawers
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showCommentDrawer, setShowCommentDrawer] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showLegalHoldModal, setShowLegalHoldModal] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [showDispositionModal, setShowDispositionModal] = useState(false);
 
-  // Phase 10.2 Versioning State
-  const [activeTab, setActiveTab] = useState('DETAILS'); // DETAILS | VERSIONS | TIMELINE | LINEAGE
-  const [versionHistory, setVersionHistory] = useState([]);
-  const [assetTimeline, setAssetTimeline] = useState(null);
-  const [assetLineage, setAssetLineage] = useState(null);
-  const [comparisonResult, setComparisonResult] = useState(null);
-  const [showCompareModal, setShowCompareModal] = useState(false);
-  const [versionASelect, setVersionASelect] = useState('v1.0');
-  const [versionBSelect, setVersionBSelect] = useState('v1.1');
-  const [showRollbackModal, setShowRollbackModal] = useState(false);
-  const [rollbackTargetVersion, setRollbackTargetVersion] = useState('');
-  const [rollbackReason, setRollbackReason] = useState('');
+  // Form States
+  const [holdTitle, setHoldTitle] = useState('');
+  const [caseReference, setCaseReference] = useState('');
+  const [holdReason, setHoldReason] = useState('');
+  const [selectedPolicyId, setSelectedPolicyId] = useState('');
+  const [shareTargetType, setShareTargetType] = useState('USER');
+  const [shareTargetId, setShareTargetId] = useState('');
+  const [shareAccessLevel, setShareAccessLevel] = useState('READ');
+  const [newCommentText, setNewCommentText] = useState('');
+  const [reviewers, setReviewers] = useState('');
+  const [reviewNotes, setReviewNotes] = useState('');
 
-  // Upload Form State
-  const [fileTitle, setFileTitle] = useState('');
-  const [docCategory, setDocCategory] = useState('BUSINESS');
-  const [docType, setDocType] = useState('BUSINESS_CERTIFICATE');
-  const [selectedFile, setSelectedFile] = useState(null);
+  // Collaboration / Governance details
+  const [assetShares, setAssetShares] = useState([]);
+  const [assetComments, setAssetComments] = useState([]);
 
   useEffect(() => {
     fetchVaultData();
-  }, [selectedCategory, selectedStatus]);
+    fetchOrganizationData();
+  }, [selectedCategory, selectedStatus, selectedFolderId, selectedCollectionId]);
 
   const fetchVaultData = async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (selectedCategory !== 'ALL') params.category = selectedCategory;
-      if (selectedStatus !== 'ALL') params.status = selectedStatus;
-      if (searchQuery) params.search = searchQuery;
+      if (selectedCollectionId) {
+        const evalRes = await axios.get(`/api/v1/vault/collections/${selectedCollectionId}`);
+        setAssets(evalRes.data.data.assets || []);
+      } else {
+        const params = {};
+        if (selectedCategory !== 'ALL') params.category = selectedCategory;
+        if (selectedStatus !== 'ALL') params.status = selectedStatus;
+        if (selectedFolderId) params.folderId = selectedFolderId;
+        if (searchQuery) params.query = searchQuery;
 
-      const [assetsRes, metricsRes] = await Promise.all([
-        axios.get('/api/v1/vault/assets', { params }),
-        axios.get('/api/v1/vault/metrics'),
-      ]);
+        const [assetsRes, metricsRes, govRes] = await Promise.all([
+          axios.get('/api/v1/vault/search/advanced', { params }),
+          axios.get('/api/v1/vault/metrics'),
+          axios.get('/api/v1/vault/governance/metrics'),
+        ]);
 
-      setAssets(assetsRes.data.data || []);
-      setMetrics(metricsRes.data.data || null);
+        setAssets(assetsRes.data.data.results || assetsRes.data.data || []);
+        setMetrics(metricsRes.data.data || null);
+        setGovernanceMetrics(govRes.data.data || null);
+      }
     } catch (err) {
       console.error('[DocumentVault] Error loading vault data:', err.message);
     } finally {
@@ -91,109 +135,63 @@ export function DocumentVaultPage() {
     }
   };
 
-  const handleInspectAsset = async (asset) => {
-    setSelectedAsset(asset);
-    setActiveTab('DETAILS');
+  const fetchOrganizationData = async () => {
     try {
-      const [versRes, timeRes, linRes] = await Promise.all([
-        axios.get(`/api/v1/vault/assets/${asset.assetId}/versions`),
-        axios.get(`/api/v1/vault/assets/${asset.assetId}/timeline`),
-        axios.get(`/api/v1/vault/assets/${asset.assetId}/lineage`),
+      const [fRes, cRes, tRes, pRes, hRes, dRes] = await Promise.all([
+        axios.get('/api/v1/vault/folders/tree'),
+        axios.get('/api/v1/vault/collections'),
+        axios.get('/api/v1/vault/tags'),
+        axios.get('/api/v1/vault/policies'),
+        axios.get('/api/v1/vault/legal-holds'),
+        axios.get('/api/v1/vault/dispositions'),
       ]);
-      setVersionHistory(versRes.data.data || []);
-      setAssetTimeline(timeRes.data.data || null);
-      setAssetLineage(linRes.data.data || null);
-      if (versRes.data.data && versRes.data.data.length >= 2) {
-        setVersionASelect(versRes.data.data[versRes.data.data.length - 1].version_number);
-        setVersionBSelect(versRes.data.data[0].version_number);
-      }
+      setFolders(fRes.data.data || []);
+      setCollections(cRes.data.data || []);
+      setTags(tRes.data.data || []);
+      setPolicies(pRes.data.data || []);
+      setLegalHolds(hRes.data.data || []);
+      setDispositions(dRes.data.data || []);
     } catch (err) {
-      console.error('[DocumentVault] Error fetching version control details:', err.message);
+      console.error('[DocumentVault] Error loading governance data:', err.message);
     }
   };
 
-  const handleCompareSubmit = async (e) => {
+  const handleCreateLegalHold = async (e) => {
     e.preventDefault();
-    if (!selectedAsset) return;
+    if (!holdTitle || !caseReference) return;
     try {
-      const res = await axios.get(`/api/v1/vault/assets/${selectedAsset.assetId}/compare`, {
-        params: { versionA: versionASelect, versionB: versionBSelect },
+      await axios.post('/api/v1/vault/legal-holds', {
+        title: holdTitle,
+        caseReference,
+        reason: holdReason,
+        assetIds: selectedAssetIds.length > 0 ? selectedAssetIds : (selectedAsset ? [selectedAsset.assetId] : []),
       });
-      setComparisonResult(res.data.data);
-      setShowCompareModal(true);
-    } catch (err) {
-      alert(`Comparison failed: ${err.message}`);
-    }
-  };
-
-  const handleRollbackSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedAsset || !rollbackTargetVersion) return;
-    try {
-      await axios.post(`/api/v1/vault/assets/${selectedAsset.assetId}/rollback`, {
-        targetVersionNumber: rollbackTargetVersion,
-        reason: rollbackReason,
-      });
-      setShowRollbackModal(false);
-      setRollbackReason('');
+      setHoldTitle('');
+      setCaseReference('');
+      setHoldReason('');
+      setShowLegalHoldModal(false);
       fetchVaultData();
-      handleInspectAsset(selectedAsset);
-      alert(`Successfully restored version '${rollbackTargetVersion}' as a new minor revision.`);
+      fetchOrganizationData();
     } catch (err) {
-      alert(`Rollback failed: ${err.message}`);
+      alert(`Legal Hold creation failed: ${err.message}`);
     }
   };
 
-  const handleSearchSubmit = (e) => {
+  const handleAssignPolicy = async (e) => {
     e.preventDefault();
-    fetchVaultData();
-  };
-
-  const handleUploadSubmit = async (e) => {
-    e.preventDefault();
-    setUploading(true);
+    if (!selectedAsset || !selectedPolicyId) return;
     try {
-      const formData = new FormData();
-      if (selectedFile) {
-        formData.append('file', selectedFile);
-      }
-      formData.append('title', fileTitle || selectedFile?.name || 'New Vault Asset');
-      formData.append('category', docCategory);
-      formData.append('documentType', docType);
-
-      await axios.post('/api/v1/vault/assets', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      await axios.post(`/api/v1/vault/assets/${selectedAsset.assetId}/policies`, {
+        policyId: selectedPolicyId,
       });
-
-      setShowUploadModal(false);
-      setFileTitle('');
-      setSelectedFile(null);
+      setShowPolicyModal(false);
       fetchVaultData();
     } catch (err) {
-      alert(`Upload failed: ${err.message}`);
-    } finally {
-      setUploading(false);
+      alert(`Policy assignment failed: ${err.message}`);
     }
   };
 
-  const handleDownload = async (asset) => {
-    try {
-      const response = await axios.get(`/api/v1/vault/assets/${asset.assetId}/download`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', asset.originalFileName || 'document.pdf');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      alert(`Download failed: ${err.message}`);
-    }
-  };
-
-  const handleArchive = async (assetId) => {
+  const handleArchiveAsset = async (assetId) => {
     try {
       await axios.post(`/api/v1/vault/assets/${assetId}/archive`);
       fetchVaultData();
@@ -202,586 +200,240 @@ export function DocumentVaultPage() {
     }
   };
 
-  const handleRestore = async (assetId) => {
+  const handleQueueDisposition = async (assetId) => {
     try {
-      await axios.post(`/api/v1/vault/assets/${assetId}/restore`);
+      await axios.post(`/api/v1/vault/assets/${assetId}/disposition`);
       fetchVaultData();
+      fetchOrganizationData();
     } catch (err) {
-      alert(`Restore failed: ${err.message}`);
+      alert(`Disposition queue failed: ${err.message}`);
     }
-  };
-
-  const handleDelete = async (assetId) => {
-    if (!window.confirm('Are you sure you want to delete this asset from the Enterprise Vault?')) return;
-    try {
-      await axios.delete(`/api/v1/vault/assets/${assetId}`);
-      fetchVaultData();
-    } catch (err) {
-      alert(`Delete failed: ${err.message}`);
-    }
-  };
-
-  const formatBytes = (bytes) => {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
     <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8 bg-gray-50/50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 bg-blue-50 text-blue-700 rounded-xl border border-blue-100">
-            <Folder size={28} weight="bold" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Enterprise Document Vault & Version Control</h1>
-            <p className="text-xs text-gray-600 font-medium mt-0.5">
-              Immutable Document Repository, Metadata Intelligence, Lineage Graph & Version History
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchVaultData}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <ArrowClockwise size={15} />
-            Refresh
-          </button>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-          >
-            <UploadSimple size={16} weight="bold" />
-            Upload Asset
-          </button>
-        </div>
-      </div>
-
-      {/* Metrics Banner */}
-      {metrics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-              <Database size={24} />
+      {/* Governance Metrics Header */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="p-3 bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
+              <Gavel size={28} weight="bold" />
             </div>
             <div>
-              <span className="text-xs text-gray-500 font-medium">Total Repository Assets</span>
-              <h3 className="text-xl font-bold text-gray-900 mt-0.5">{metrics.totalAssets}</h3>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Records Management, Retention & Legal Hold</h1>
+              <p className="text-xs text-gray-600 font-medium mt-0.5">
+                Statutory Retention Policies, Legal Hold Protection, Archival & Governed Disposition
+              </p>
             </div>
           </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-              <HardDrive size={24} />
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 font-medium">Vault Storage Used</span>
-              <h3 className="text-xl font-bold text-gray-900 mt-0.5">{metrics.mbUsed} MB</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-              <GitBranch size={24} />
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 font-medium">Version Control Engine</span>
-              <h3 className="text-xl font-bold text-gray-900 mt-0.5">Immutable</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center gap-4">
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-              <LockKey size={24} />
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 font-medium">Encrypted Storage</span>
-              <h3 className="text-xl font-bold text-gray-900 mt-0.5">AES-256</h3>
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowLegalHoldModal(true)}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+            >
+              <ShieldWarning size={16} weight="bold" /> Create Legal Hold
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Controls Bar: Search & Category Filters */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row gap-4 justify-between items-center">
-        <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96">
-          <MagnifyingGlass size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by title, filename, or document type..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
-        </form>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <Funnel size={15} className="text-gray-500" />
-            <span className="text-xs text-gray-600 font-semibold">Category:</span>
-          </div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="py-1.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none"
-          >
-            <option value="ALL">All Categories</option>
-            <option value="BUSINESS">Business</option>
-            <option value="COMPLIANCE">Compliance</option>
-            <option value="LEGAL">Legal</option>
-            <option value="FINANCIAL">Financial</option>
-            <option value="IDENTITY">Identity</option>
-            <option value="SUPPLIER">Supplier</option>
-            <option value="AI_REPORT">AI Reports</option>
-            <option value="EXECUTIVE">Executive</option>
-            <option value="AUDIT">Audit</option>
-          </select>
-
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="py-1.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="VERIFIED">Verified</option>
-            <option value="ANALYZED">Analyzed</option>
-            <option value="PROCESSING">Processing</option>
-            <option value="APPROVED">Approved</option>
-            <option value="ARCHIVED">Archived</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Vault Assets Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900">Document Vault Library</h3>
-          <span className="text-xs text-gray-500 font-medium">Showing {assets.length} Asset(s)</span>
-        </div>
-
-        {loading ? (
-          <div className="p-12 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
-            <ArrowClockwise size={18} className="animate-spin text-blue-600" />
-            Loading Enterprise Vault Asset Repository...
-          </div>
-        ) : assets.length === 0 ? (
-          <div className="p-12 text-center text-xs text-gray-500">
-            No assets found matching the selected repository filters.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-gray-50/70 text-gray-600 border-b border-gray-100 font-semibold">
-                  <th className="py-3.5 px-5">Asset Identifier / Title</th>
-                  <th className="py-3.5 px-4">Version</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Document Type</th>
-                  <th className="py-3.5 px-4">Size</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Created Date</th>
-                  <th className="py-3.5 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {assets.map((item) => (
-                  <tr key={item.assetId} className="hover:bg-gray-50/60 transition-all">
-                    <td className="py-3.5 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                          <FileText size={18} />
-                        </div>
-                        <div>
-                          <div className="font-bold text-gray-900">{item.title}</div>
-                          <div className="text-[11px] text-gray-600">{item.originalFileName}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                        {item.currentVersion || 'v1.0'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gray-100 text-gray-700">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-gray-700 font-medium">{item.documentType}</td>
-                    <td className="py-3.5 px-4 text-gray-600 font-medium">{formatBytes(item.fileSize)}</td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                          item.status === 'VERIFIED' || item.status === 'APPROVED'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : item.status === 'ARCHIVED'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-gray-600">
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3.5 px-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleInspectAsset(item)}
-                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          title="Inspect Details & Version History"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDownload(item)}
-                          className="p-1.5 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
-                          title="Download"
-                        >
-                          <DownloadSimple size={16} />
-                        </button>
-                        {item.status === 'ARCHIVED' ? (
-                          <button
-                            onClick={() => handleRestore(item.assetId)}
-                            className="p-1.5 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                            title="Restore"
-                          >
-                            <ArrowClockwise size={16} />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleArchive(item.assetId)}
-                            className="p-1.5 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-                            title="Archive"
-                          >
-                            <Archive size={16} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(item.assetId)}
-                          className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Delete"
-                        >
-                          <Trash size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Governance KPI Grid */}
+        {governanceMetrics && (
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 border-t border-gray-100 pt-5 text-xs">
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <span className="text-gray-500 font-medium">Total Assets</span>
+              <div className="text-lg font-bold text-gray-900 mt-1">{governanceMetrics.totalAssets}</div>
+            </div>
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+              <span className="text-amber-700 font-medium">Active Legal Holds</span>
+              <div className="text-lg font-bold text-amber-900 mt-1">{governanceMetrics.activeHolds}</div>
+            </div>
+            <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+              <span className="text-indigo-700 font-medium">Active Policies</span>
+              <div className="text-lg font-bold text-indigo-900 mt-1">{governanceMetrics.activePolicies}</div>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+              <span className="text-blue-700 font-medium">Archived Assets</span>
+              <div className="text-lg font-bold text-blue-900 mt-1">{governanceMetrics.archivedAssets}</div>
+            </div>
+            <div className="p-3 bg-rose-50 rounded-xl border border-rose-100">
+              <span className="text-rose-700 font-medium">Pending Disposition</span>
+              <div className="text-lg font-bold text-rose-900 mt-1">{governanceMetrics.pendingDispositions}</div>
+            </div>
+            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+              <span className="text-emerald-700 font-medium">Compliance Health</span>
+              <div className="text-lg font-bold text-emerald-900 mt-1">{governanceMetrics.complianceHealthScore}%</div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Asset Version Control Inspector Modal */}
-      {selectedAsset && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-3">
-                <FileText size={24} className="text-blue-600" />
-                <div>
-                  <h3 className="text-base font-bold text-gray-900">{selectedAsset.title}</h3>
-                  <span className="text-xs text-gray-500 font-mono">Current Version: {selectedAsset.currentVersion || 'v1.0'}</span>
-                </div>
-              </div>
-              <button onClick={() => setSelectedAsset(null)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Sub Tabs */}
-            <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-              {['DETAILS', 'VERSIONS', 'TIMELINE', 'LINEAGE'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    activeTab === tab
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* TAB 1: DETAILS */}
-            {activeTab === 'DETAILS' && (
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Asset UUID</span>
-                    <span className="text-gray-900 font-mono text-[11px]">{selectedAsset.assetId}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Storage Provider</span>
-                    <span className="text-gray-900 font-medium">{selectedAsset.storageProvider}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-semibold block">Category / Type</span>
-                    <span className="text-gray-900 font-medium">{selectedAsset.category} / {selectedAsset.documentType}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400 font-semibold block">MIME Type & Size</span>
-                    <span className="text-gray-900 font-medium">{selectedAsset.mimeType} ({formatBytes(selectedAsset.fileSize)})</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-gray-400 font-semibold block">Checksum (SHA-256)</span>
-                    <span className="text-gray-900 font-mono text-[11px] break-all">{selectedAsset.checksum}</span>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs flex flex-col gap-2">
-                  <span className="font-bold text-gray-900 flex items-center gap-1.5">
-                    <Sparkle size={14} className="text-blue-600" /> Active Version Metadata
-                  </span>
-                  <pre className="text-[11px] text-gray-700 bg-white p-3 rounded-lg border border-gray-200 overflow-x-auto max-h-40">
-                    {JSON.stringify(selectedAsset.metadata, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: VERSIONS */}
-            {activeTab === 'VERSIONS' && (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-gray-900">Immutable Version Snapshots</h4>
-                  <button
-                    onClick={() => setShowRollbackModal(true)}
-                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ArrowClockwise size={14} /> Soft Rollback
-                  </button>
-                </div>
-
-                <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden text-xs">
-                  {versionHistory.map((v) => (
-                    <div key={v.id} className="p-3.5 bg-white hover:bg-gray-50 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                          {v.version_number}
-                        </span>
-                        <div>
-                          <div className="font-bold text-gray-900">{v.change_summary}</div>
-                          <div className="text-[11px] text-gray-500">
-                            By {v.changed_by} on {new Date(v.created_at).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-700 rounded-full">
-                        {v.version_tag}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Compare Bar */}
-                {versionHistory.length >= 2 && (
-                  <form onSubmit={handleCompareSubmit} className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between text-xs gap-3">
-                    <span className="font-bold text-gray-900 flex items-center gap-1">
-                      <Scales size={16} className="text-blue-600" /> Compare:
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={versionASelect}
-                        onChange={(e) => setVersionASelect(e.target.value)}
-                        className="py-1 px-2 bg-white border border-gray-300 rounded-lg text-xs"
-                      >
-                        {versionHistory.map((v) => (
-                          <option key={v.id} value={v.version_number}>
-                            {v.version_number}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-gray-400 font-semibold">vs</span>
-                      <select
-                        value={versionBSelect}
-                        onChange={(e) => setVersionBSelect(e.target.value)}
-                        className="py-1 px-2 bg-white border border-gray-300 rounded-lg text-xs"
-                      >
-                        {versionHistory.map((v) => (
-                          <option key={v.id} value={v.version_number}>
-                            {v.version_number}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button type="submit" className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg">
-                      Compare Diff
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
-
-            {/* TAB 3: TIMELINE */}
-            {activeTab === 'TIMELINE' && assetTimeline && (
-              <div className="flex flex-col gap-3 text-xs">
-                <h4 className="text-xs font-bold text-gray-900">Chronological History Timeline</h4>
-                <div className="relative pl-6 border-l-2 border-blue-200 flex flex-col gap-4 my-2">
-                  {assetTimeline.events?.map((ev) => (
-                    <div key={ev.id} className="relative">
-                      <div className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-blue-600 border-2 border-white" />
-                      <div className="font-bold text-gray-900">{ev.summary || ev.type}</div>
-                      <div className="text-[11px] text-gray-500">
-                        {new Date(ev.timestamp).toLocaleString()} • Actor: {ev.actor || 'SYSTEM'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: LINEAGE */}
-            {activeTab === 'LINEAGE' && assetLineage && (
-              <div className="flex flex-col gap-3 text-xs">
-                <h4 className="text-xs font-bold text-gray-900">Document Ancestry Lineage Nodes</h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {assetLineage.lineageNodes?.map((node) => (
-                    <div key={node.versionNumber} className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <GitCommit size={18} className="text-blue-600" />
-                        <div>
-                          <span className="font-bold text-gray-900">{node.versionNumber}</span>
-                          {node.parentVersion && <span className="text-gray-400 text-[11px]"> (Parent: {node.parentVersion})</span>}
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 rounded-full">
-                        {node.lineageType}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-              <button
-                onClick={() => setSelectedAsset(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => handleDownload(selectedAsset)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5"
-              >
-                <DownloadSimple size={15} /> Download Binary
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Comparison Diff Modal */}
-      {showCompareModal && comparisonResult && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Scales size={20} className="text-blue-600" /> Version Comparison Diff
-              </h3>
-              <button onClick={() => setShowCompareModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-3 bg-blue-50 text-blue-900 rounded-xl text-xs font-semibold border border-blue-200">
-              {comparisonResult.humanReadableSummary}
-            </div>
-
-            <div className="overflow-y-auto max-h-60 flex flex-col gap-2 text-xs">
-              <h4 className="font-bold text-gray-900">Field Level Deltas ({comparisonResult.fieldDeltas?.length || 0})</h4>
-              {comparisonResult.fieldDeltas?.map((d, i) => (
-                <div key={i} className="p-2.5 bg-gray-50 rounded-lg border border-gray-200 grid grid-cols-3 gap-2">
-                  <span className="font-bold text-gray-800">{d.fieldName}</span>
-                  <span className="text-red-600 font-mono text-[11px] truncate">Prev: {d.previousValue || 'null'}</span>
-                  <span className="text-emerald-600 font-mono text-[11px] truncate">New: {d.newValue || 'null'}</span>
+      {/* Main Split Layout: Sidebar & Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Governance Sidebar */}
+        <div className="flex flex-col gap-6">
+          {/* Legal Holds Overview */}
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-900 tracking-wider uppercase flex items-center gap-1.5">
+              <ShieldWarning size={15} className="text-amber-600" /> Active Legal Holds
+            </h3>
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto text-xs">
+              {legalHolds.map((h) => (
+                <div key={h.id} className="p-2.5 bg-amber-50/50 rounded-xl border border-amber-200/60">
+                  <div className="font-bold text-amber-900 truncate">{h.title}</div>
+                  <div className="text-[10px] text-amber-700 font-mono mt-0.5">Ref: {h.case_reference}</div>
+                  <div className="text-[10px] text-gray-500 mt-1">{h.hold_assets?.length || 0} document(s) bound</div>
                 </div>
               ))}
             </div>
+          </div>
 
-            <div className="flex justify-end pt-2 border-t border-gray-100">
-              <button
-                onClick={() => setShowCompareModal(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs"
-              >
-                Close Comparison
-              </button>
+          {/* Retention Policies Overview */}
+          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-900 tracking-wider uppercase flex items-center gap-1.5">
+              <CheckCircle size={15} className="text-indigo-600" /> Statutory Policies
+            </h3>
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto text-xs">
+              {policies.map((p) => (
+                <div key={p.id} className="p-2 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+                  <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                  <span className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-md font-bold">{p.retention_days}d</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Soft Rollback Modal */}
-      {showRollbackModal && (
+        {/* Content Area */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
+          {/* Assets Repository Table */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900">Governance & Records Workspace</h3>
+              <span className="text-xs text-gray-500 font-medium">Showing {assets.length} Asset(s)</span>
+            </div>
+
+            {loading ? (
+              <div className="p-12 text-center text-xs text-gray-500">Querying Governance Engine...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-50/70 text-gray-600 border-b border-gray-100 font-semibold">
+                      <th className="py-3.5 px-4">Document Title</th>
+                      <th className="py-3.5 px-4">Lifecycle State</th>
+                      <th className="py-3.5 px-4">Legal Hold</th>
+                      <th className="py-3.5 px-4">Disposition Status</th>
+                      <th className="py-3.5 px-4 text-right">Governance Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {assets.map((item) => {
+                      const aId = item.assetId || item.asset_id;
+                      const hasHold = item.legal_hold_flag || item.legalHoldFlag;
+                      return (
+                        <tr key={aId} className="hover:bg-gray-50/60 transition-all">
+                          <td className="py-3.5 px-4 font-bold text-gray-900">{item.title}</td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              {item.lifecycle_state || item.lifecycleState || 'ACTIVE'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {hasHold ? (
+                              <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 w-fit">
+                                <ShieldWarning size={14} /> ACTIVE HOLD
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 font-medium">Clear</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-gray-700">
+                            {item.disposition_status || item.dispositionStatus || 'NONE'}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedAsset(item);
+                                  setShowPolicyModal(true);
+                                }}
+                                className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-bold hover:bg-indigo-100 cursor-pointer"
+                              >
+                                Policy
+                              </button>
+                              <button
+                                onClick={() => handleArchiveAsset(aId)}
+                                className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold hover:bg-blue-100 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Archive size={14} /> Archive
+                              </button>
+                              <button
+                                onClick={() => handleQueueDisposition(aId)}
+                                className="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg font-bold hover:bg-rose-100 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash size={14} /> Dispose
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Legal Hold Modal */}
+      {showLegalHoldModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <ArrowClockwise size={20} className="text-amber-600" /> Execute Soft Rollback
+                <ShieldWarning size={20} className="text-amber-600" /> Create Legal Hold
               </h3>
-              <button onClick={() => setShowRollbackModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowLegalHoldModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
-
-            <form onSubmit={handleRollbackSubmit} className="flex flex-col gap-3 text-xs">
+            <form onSubmit={handleCreateLegalHold} className="flex flex-col gap-3 text-xs">
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">Target Historical Version</label>
-                <select
-                  value={rollbackTargetVersion}
-                  onChange={(e) => setRollbackTargetVersion(e.target.value)}
+                <label className="block text-gray-700 font-semibold mb-1">Hold Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Revenue Tax Investigation 2026"
+                  value={holdTitle}
+                  onChange={(e) => setHoldTitle(e.target.value)}
                   className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
                   required
-                >
-                  <option value="">Select Version to Restore...</option>
-                  {versionHistory.map((v) => (
-                    <option key={v.id} value={v.version_number}>
-                      {v.version_number} — {v.change_summary}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">Rollback Reason / Notes</label>
-                <textarea
-                  rows={3}
-                  placeholder="Reason for restoring this version..."
-                  value={rollbackReason}
-                  onChange={(e) => setRollbackReason(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
                 />
               </div>
-
-              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-medium">
-                Note: Soft rollback will create a NEW restored revision without overwriting or deleting any existing historical version snapshots.
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Case Reference</label>
+                <input
+                  type="text"
+                  placeholder="e.g. CASE_2026_9901"
+                  value={caseReference}
+                  onChange={(e) => setCaseReference(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                  required
+                />
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRollbackModal(false)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl"
-                >
-                  Execute Rollback
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Reason / Scope</label>
+                <textarea
+                  placeholder="Reason for statutory legal hold..."
+                  value={holdReason}
+                  onChange={(e) => setHoldReason(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="submit" className="px-4 py-2 bg-amber-600 text-white font-semibold rounded-xl cursor-pointer">
+                  Place Legal Hold
                 </button>
               </div>
             </form>
@@ -789,83 +441,38 @@ export function DocumentVaultPage() {
         </div>
       )}
 
-      {/* Upload Asset Modal */}
-      {showUploadModal && (
+      {/* Assign Policy Modal */}
+      {showPolicyModal && selectedAsset && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <UploadSimple size={22} className="text-blue-600" />
-                <h3 className="text-base font-bold text-gray-900">Upload to Enterprise Vault</h3>
-              </div>
-              <button onClick={() => setShowUploadModal(false)} className="text-gray-400 hover:text-gray-600">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <CheckCircle size={20} className="text-indigo-600" /> Assign Retention Policy
+              </h3>
+              <button onClick={() => setShowPolicyModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
-
-            <form onSubmit={handleUploadSubmit} className="flex flex-col gap-4 text-xs">
+            <form onSubmit={handleAssignPolicy} className="flex flex-col gap-3 text-xs">
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">Asset Title / Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Annual GST Certificate 2026"
-                  value={fileTitle}
-                  onChange={(e) => setFileTitle(e.target.value)}
+                <label className="block text-gray-700 font-semibold mb-1">Select Policy</label>
+                <select
+                  value={selectedPolicyId}
+                  onChange={(e) => setSelectedPolicyId(e.target.value)}
                   className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-1">Category</label>
-                  <select
-                    value={docCategory}
-                    onChange={(e) => setDocCategory(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium"
-                  >
-                    <option value="BUSINESS">BUSINESS</option>
-                    <option value="COMPLIANCE">COMPLIANCE</option>
-                    <option value="LEGAL">LEGAL</option>
-                    <option value="FINANCIAL">FINANCIAL</option>
-                    <option value="IDENTITY">IDENTITY</option>
-                    <option value="SUPPLIER">SUPPLIER</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-1">Document Type</label>
-                  <input
-                    type="text"
-                    value={docType}
-                    onChange={(e) => setDocType(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">Select File</label>
-                <input
-                  type="file"
-                  onChange={(e) => setSelectedFile(e.target.files[0])}
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl"
+                  required
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl flex items-center gap-2"
-                >
-                  {uploading && <ArrowClockwise size={14} className="animate-spin" />}
-                  Save to Vault
+                  <option value="">Select Retention Policy...</option>
+                  {policies.map((p) => (
+                    <option key={p.id} value={p.policy_id}>
+                      {p.name} ({p.retention_days} days)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl cursor-pointer">
+                  Assign Policy
                 </button>
               </div>
             </form>
