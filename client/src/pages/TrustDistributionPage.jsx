@@ -2,6 +2,7 @@
  * TrustDistributionPage.jsx
  * Trust Distribution Workspace Page.
  * Multi-channel distribution management, QR experience, downloadable assets, and embed snippets.
+ * Strictly adheres to DESIGN_SYSTEM.md enterprise tokens.
  */
 import { useState } from 'react';
 import { useTrustDistribution } from '../hooks/useTrustDistribution';
@@ -32,6 +33,7 @@ export function TrustDistributionPage() {
     generateQRCode,
     regenerateQRCode,
     generateAssets,
+    downloadCertificatePDF,
   } = useTrustDistribution();
 
   const [copiedKey, setCopiedKey] = useState(null);
@@ -42,26 +44,28 @@ export function TrustDistributionPage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const qrImageUrl = qrData?.qr_image_url || qrData?.qrDataUrl;
+
   // ── Loading state ──
   if (loading) {
     return (
-      <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        <span className="text-sm font-medium">Loading Trust Distribution Workspace…</span>
+      <div className="p-12 flex flex-col items-center justify-center gap-3 text-[--vc-text-tertiary]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[--vc-brand]" />
+        <span className="text-[--text-xs] font-semibold">Loading Trust Distribution Workspace…</span>
       </div>
     );
   }
 
-  // ── API / network error (critical path failed) ──
+  // ── API / network error ──
   if (error && !identity) {
     return (
-      <div className="p-8 rounded-2xl bg-white border border-red-100 shadow-sm text-center">
-        <WarningCircle size={32} className="mx-auto text-red-400 mb-3" />
-        <h2 className="text-lg font-bold text-slate-800">Unable to Load Distribution Workspace</h2>
-        <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">{error}</p>
+      <div className="p-8 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-error]/30 text-center">
+        <WarningCircle size={32} className="mx-auto text-[--vc-error] mb-3" />
+        <h2 className="text-[--text-lg] font-bold text-[--vc-text-primary] font-[--font-heading]">Unable to Load Distribution Workspace</h2>
+        <p className="text-[--text-xs] text-[--vc-text-secondary] mt-1 max-w-md mx-auto">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-[--radius-md] bg-[--vc-brand] hover:bg-[--vc-brand-hover] text-white font-semibold text-[--text-xs] transition-colors"
         >
           <ArrowsClockwise size={16} /> Retry
         </button>
@@ -69,18 +73,18 @@ export function TrustDistributionPage() {
     );
   }
 
-  // ── Identity not yet available — should be transient after auto-init ──
+  // ── Identity initializing ──
   if (!identity) {
     return (
-      <div className="p-8 rounded-2xl bg-white border border-amber-100 shadow-sm text-center">
-        <WarningCircle size={32} className="mx-auto text-amber-500 mb-3" />
-        <h2 className="text-lg font-bold text-slate-800">Distribution Identity Initializing</h2>
-        <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+      <div className="p-8 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-warning]/30 text-center">
+        <WarningCircle size={32} className="mx-auto text-[--vc-warning] mb-3" />
+        <h2 className="text-[--text-lg] font-bold text-[--vc-text-primary] font-[--font-heading]">Distribution Identity Initializing</h2>
+        <p className="text-[--text-xs] text-[--vc-text-secondary] mt-1 max-w-md mx-auto">
           Your distribution profile is being set up automatically. Please wait a moment and refresh.
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-[--radius-md] bg-[--vc-brand] hover:bg-[--vc-brand-hover] text-white font-semibold text-[--text-xs] transition-colors"
         >
           <ArrowsClockwise size={16} /> Refresh
         </button>
@@ -94,271 +98,239 @@ export function TrustDistributionPage() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       {/* ── Header ── */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="p-6 sm:p-8 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
-            <Broadcast size={40} />
+          <div className="p-3 rounded-[--radius-sm] bg-[--vc-brand-subtle] border border-[--vc-brand]/20 text-[--vc-brand]">
+            <Broadcast size={36} />
           </div>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              <h1 className="text-[--text-2xl] font-bold text-[--vc-text-primary] tracking-tight font-[--font-heading]">
                 Trust Distribution Hub
               </h1>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                {identity.status}
+              <span className="px-2.5 py-0.5 rounded-[--radius-sm] text-[--text-xs] font-semibold bg-[--vc-success-bg] text-[--vc-success-text] border border-[--vc-success]/20 uppercase tracking-wider font-mono">
+                ACTIVE PIPELINE
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
-              Stable ID:{' '}
-              <span className="text-slate-700">{identity.stable_distribution_id}</span>
-              {' '}·{' '}
-              Version: {identity.asset_version || 'v1.0.0'}
+            <p className="text-[--text-xs] text-[--vc-text-secondary] mt-1">
+              Multi-channel broadcasting platform producing dynamic signed QR codes, certificates, and embeddable widgets.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={generateAssets}
-            disabled={actionLoading}
-            className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm"
-          >
-            <ArrowsClockwise size={16} className={actionLoading ? 'animate-spin' : ''} />
-            {actionLoading ? 'Generating…' : 'Refresh All Assets'}
-          </button>
+        <div className="flex items-center gap-3">
           <a
             href={publicUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[--radius-md] bg-[--vc-bg-base] hover:bg-[--vc-bg-muted] border border-[--vc-border] text-[--vc-text-primary] text-[--text-xs] font-semibold transition-colors"
           >
-            <ArrowSquareOut size={16} />
-            View Public Page
+            <ArrowSquareOut size={15} /> View Public Portal
           </a>
         </div>
       </div>
 
-      {/* ── Dynamic QR Experience Section ── */}
-      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-center">
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shrink-0 flex flex-col items-center gap-2">
-          {qrData?.qrDataUrl ? (
-            <img src={qrData.qrDataUrl} alt="Dynamic QR Verification Code" className="w-40 h-40 rounded-lg" />
-          ) : (
-            <div className="w-40 h-40 rounded-lg bg-white border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
-              <QrCode size={40} />
-              <span className="text-[10px] font-mono text-slate-400">QR Not Generated</span>
+      {/* ── Grid Section: QR Code & Distribution Channels ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Dynamic Signed QR Engine Card */}
+        <div className="p-6 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col justify-between gap-4">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-[--vc-border] mb-4">
+              <h3 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2">
+                <QrCode size={18} className="text-[--vc-brand]" /> Signed QR Engine
+              </h3>
+              <span className="text-[10px] font-mono text-[--vc-text-tertiary]">SVG / PNG</span>
             </div>
-          )}
-          <span className="text-[10px] font-mono text-slate-400">HMAC-SHA256 Signed Token</span>
-        </div>
 
-        <div className="flex-1 flex flex-col gap-3">
-          <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <QrCode size={20} className="text-blue-600" />
-            Dynamic Verification QR Code
-          </h3>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            Scan to instantly verify statutory compliance and supplier identity. Embed on purchase orders, invoices,
-            delivery notes, and corporate brochures.
-          </p>
-
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 break-all flex items-center justify-between gap-3">
-            <span className="truncate">{qrData?.targetUrl || publicUrl}</span>
-            <button
-              onClick={() => handleCopy(qrData?.targetUrl || publicUrl, 'qrUrl')}
-              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-500 border border-slate-200 transition-colors"
-              title="Copy URL"
-            >
-              {copiedKey === 'qrUrl' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
-            </button>
+            {qrImageUrl ? (
+              <div className="flex flex-col items-center justify-center p-4 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border] mb-4">
+                <img
+                  src={qrImageUrl}
+                  alt="Verified QR Code"
+                  className="w-44 h-44 object-contain rounded-[--radius-sm]"
+                />
+                <span className="text-[10px] font-mono text-[--vc-text-tertiary] mt-2">
+                  Version {qrData.version || 1} • Dynamic Verification Ring
+                </span>
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border] mb-4">
+                <p className="text-[--text-xs] text-[--vc-text-secondary]">No active QR Code generated.</p>
+                <button
+                  onClick={generateQRCode}
+                  disabled={actionLoading}
+                  className="mt-3 px-4 py-2 rounded-[--radius-md] bg-[--vc-brand] text-white font-semibold text-[--text-xs]"
+                >
+                  Generate Initial QR Code
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap pt-1">
-            {!qrData ? (
-              <button
-                onClick={generateQRCode}
-                disabled={actionLoading}
-                className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-sm"
+          {qrImageUrl && (
+            <div className="space-y-2 pt-2 border-t border-[--vc-border]">
+              <a
+                href={qrImageUrl}
+                download="VerifyChain-QR.png"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[--radius-md] bg-[--vc-brand] text-white font-semibold text-[--text-xs] hover:bg-[--vc-brand-hover] transition-colors"
               >
-                <QrCode size={14} /> Generate Dynamic QR
-              </button>
-            ) : (
+                <DownloadSimple size={15} /> Download Signed QR Code
+              </a>
               <button
                 onClick={regenerateQRCode}
                 disabled={actionLoading}
-                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[--radius-md] bg-[--vc-bg-base] border border-[--vc-border] text-[--vc-text-primary] font-semibold text-[--text-xs] hover:bg-[--vc-bg-muted] transition-colors disabled:opacity-50"
               >
-                <ArrowsClockwise size={14} /> Regenerate Token
+                <ArrowsClockwise size={15} className={actionLoading ? 'animate-spin' : ''} />
+                Regenerate Signed Hash
               </button>
-            )}
-
-            {qrData?.qrDataUrl && (
-              <a
-                href={qrData.qrDataUrl}
-                download={`VerifyChain_QR_${identity.public_slug}.png`}
-                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors"
-              >
-                <DownloadSimple size={14} /> Download PNG
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Downloadable Trust Assets Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Printable PDF Certificate Card */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
-          <div>
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-                <FilePdf size={17} />
-                Printable Certificate
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                PDF Document
-              </span>
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Statutory Compliance Certificate</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              High-resolution printable A4 certificate containing official verification seal, issued date, and public
-              identifier.
-            </p>
-          </div>
-          <a
-            href="/api/trust-distribution/assets/download/certificate"
-            download
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
-          >
-            <DownloadSimple size={16} /> Download High-Res PDF Certificate
-          </a>
+          )}
         </div>
 
-        {/* Website Verification Widget Card */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+        {/* Digital Certificate & PDF Engine */}
+        <div className="p-6 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col justify-between gap-4">
           <div>
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-                <Code size={17} />
-                Embeddable Widget
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                Responsive iFrame
-              </span>
+            <div className="flex items-center justify-between pb-3 border-b border-[--vc-border] mb-4">
+              <h3 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2">
+                <FilePdf size={18} className="text-[--vc-brand]" /> PDF Verification Certificate
+              </h3>
+              <span className="text-[10px] font-mono text-[--vc-text-tertiary]">Printable</span>
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Website Verification Widget</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              Embed live compliance verification standing directly onto your corporate website footer or contact page.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={widgetConfig?.iframeCode || `<iframe src="${clientUrl}/embed/widget/${identity.public_slug}"></iframe>`}
-              className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-600 truncate"
-            />
-            <button
-              onClick={() => handleCopy(widgetConfig?.iframeCode || '', 'widgetCode')}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1 transition-colors"
-            >
-              {copiedKey === 'widgetCode' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Embeddable Trust Badge & Social Share Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Trust Badge Snippet */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-            <Code size={17} /> Embeddable Trust Badge
-          </span>
-          <p className="text-sm text-slate-500">
-            Lightweight SVG &amp; HTML badge code linking directly to your verified standing.
-          </p>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-            <span className="text-xs font-mono text-slate-600 truncate">
-              {badgeConfig?.htmlCode || `<a href="${publicUrl}">Verified Supplier</a>`}
-            </span>
+            <p className="text-[--text-xs] text-[--vc-text-secondary] leading-[--lh-relaxed] mb-4">
+              Export an official high-resolution, cryptographically verifiable PDF certificate suitable for corporate procurement submissions, RFP responses, and physical display.
+            </p>
+
+            <div className="p-4 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] space-y-2 text-[--text-xs] font-mono">
+              <div className="flex justify-between">
+                <span className="text-[--vc-text-tertiary]">Certificate ID:</span>
+                <span className="font-bold text-[--vc-text-primary]">{identity.public_slug.toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[--vc-text-tertiary]">Issued Status:</span>
+                <span className="font-bold text-[--vc-success-text]">VERIFIED & SIGNED</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[--vc-text-tertiary]">Format:</span>
+                <span className="text-[--vc-text-primary]">Vector PDF A4</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[--vc-border]">
             <button
-              onClick={() => handleCopy(badgeConfig?.htmlCode || '', 'badgeCode')}
-              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors"
+              onClick={downloadCertificatePDF}
+              disabled={actionLoading}
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[--radius-md] bg-[--vc-brand] text-white font-semibold text-[--text-xs] hover:bg-[--vc-brand-hover] transition-colors disabled:opacity-50"
             >
-              {copiedKey === 'badgeCode' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
+              <DownloadSimple size={15} className={actionLoading ? 'animate-spin' : ''} /> Download PDF Certificate
             </button>
           </div>
         </div>
 
-        {/* Social Share Links */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-            <ShareNetwork size={17} /> Social Share Links
-          </span>
-          <p className="text-sm text-slate-500">
-            Share your verified profile across professional channels with pre-configured OpenGraph metadata.
-          </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            {shareConfig?.socialShare?.whatsapp ? (
-              <a
-                href={shareConfig.socialShare.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-colors"
-              >
-                WhatsApp
-              </a>
-            ) : (
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Verify my business on VerifyChain: ${publicUrl}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-colors"
-              >
-                WhatsApp
-              </a>
-            )}
-            {shareConfig?.socialShare?.linkedin ? (
-              <a
-                href={shareConfig.socialShare.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition-colors"
-              >
-                LinkedIn
-              </a>
-            ) : (
-              <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition-colors"
-              >
-                LinkedIn
-              </a>
-            )}
-            {shareConfig?.socialShare?.twitter ? (
-              <a
-                href={shareConfig.socialShare.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold transition-colors"
-              >
-                X (Twitter)
-              </a>
-            ) : (
-              <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent('Verified Supplier Profile on VerifyChain')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold transition-colors"
-              >
-                X (Twitter)
-              </a>
-            )}
+        {/* Shareable Verification Link */}
+        <div className="p-6 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col justify-between gap-4">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-[--vc-border] mb-4">
+              <h3 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2">
+                <ShareNetwork size={18} className="text-[--vc-brand]" /> Shareable Public URL
+              </h3>
+              <span className="text-[10px] font-mono text-[--vc-text-tertiary]">Instant Access</span>
+            </div>
+
+            <p className="text-[--text-xs] text-[--vc-text-secondary] leading-[--lh-relaxed] mb-4">
+              Direct public portal endpoint for enterprise buyers to verify your live statutory compliance standing in real time without authentication barriers.
+            </p>
+
+            <div className="p-3 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] font-mono text-[11px] text-[--vc-text-primary] truncate mb-3">
+              {publicUrl}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[--vc-border]">
+            <button
+              onClick={() => handleCopy(publicUrl, 'url')}
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[--radius-md] bg-[--vc-bg-base] border border-[--vc-border] text-[--vc-text-primary] font-semibold text-[--text-xs] hover:bg-[--vc-bg-muted] transition-colors"
+            >
+              {copiedKey === 'url' ? <Check size={15} className="text-[--vc-success]" /> : <Copy size={15} />}
+              {copiedKey === 'url' ? 'URL Copied to Clipboard!' : 'Copy Portal URL'}
+            </button>
           </div>
         </div>
+
+      </div>
+
+      {/* ── Embed Snippets Section ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* HTML Embed Snippet */}
+        <div className="p-6 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col gap-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[--vc-border]">
+            <h3 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2">
+              <Code size={18} className="text-[--vc-brand]" /> HTML Widget Embed
+            </h3>
+            <span className="text-[10px] font-mono text-[--vc-text-tertiary]">Iframe / Script</span>
+          </div>
+
+          <p className="text-[--text-xs] text-[--vc-text-secondary]">
+            Embed your real-time verified supplier trust badge directly into your company website or portal header.
+          </p>
+
+          <pre className="p-4 rounded-[--radius-sm] bg-[--vc-bg-inverse] text-emerald-400 font-mono text-[11px] overflow-x-auto border border-[--vc-border]">
+            {`<iframe src="${clientUrl}/embed/${identity.public_slug}" width="320" height="180" frameborder="0"></iframe>`}
+          </pre>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() =>
+                handleCopy(
+                  `<iframe src="${clientUrl}/embed/${identity.public_slug}" width="320" height="180" frameborder="0"></iframe>`,
+                  'iframe'
+                )
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[--radius-md] bg-[--vc-bg-base] border border-[--vc-border] text-[--vc-text-primary] font-semibold text-[--text-xs] hover:bg-[--vc-bg-muted] transition-colors"
+            >
+              {copiedKey === 'iframe' ? <Check size={14} className="text-[--vc-success]" /> : <Copy size={14} />}
+              {copiedKey === 'iframe' ? 'Copied HTML!' : 'Copy HTML Snippet'}
+            </button>
+          </div>
+        </div>
+
+        {/* React Component Embed Snippet */}
+        <div className="p-6 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col gap-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[--vc-border]">
+            <h3 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2">
+              <Code size={18} className="text-[--vc-brand]" /> React Component Embed
+            </h3>
+            <span className="text-[10px] font-mono text-[--vc-text-tertiary]">JSX Component</span>
+          </div>
+
+          <p className="text-[--text-xs] text-[--vc-text-secondary]">
+            Clean JSX React integration snippet for embedding the VerifyChain trust component into modern web apps.
+          </p>
+
+          <pre className="p-4 rounded-[--radius-sm] bg-[--vc-bg-inverse] text-blue-300 font-mono text-[11px] overflow-x-auto border border-[--vc-border]">
+            {`<VerifyChainBadge slug="${identity.public_slug}" mode="enterprise" />`}
+          </pre>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() =>
+                handleCopy(
+                  `<VerifyChainBadge slug="${identity.public_slug}" mode="enterprise" />`,
+                  'react'
+                )
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[--radius-md] bg-[--vc-bg-base] border border-[--vc-border] text-[--vc-text-primary] font-semibold text-[--text-xs] hover:bg-[--vc-bg-muted] transition-colors"
+            >
+              {copiedKey === 'react' ? <Check size={14} className="text-[--vc-success]" /> : <Copy size={14} />}
+              {copiedKey === 'react' ? 'Copied JSX!' : 'Copy JSX Snippet'}
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

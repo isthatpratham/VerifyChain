@@ -12,4 +12,24 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@phosphor-icons')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('react')) {
+              return 'vendor-react';
+            }
+            if (id.includes('axios')) {
+              return 'vendor-http';
+            }
+            return 'vendor-others';
+          }
+        },
+      },
+    },
+  },
 });

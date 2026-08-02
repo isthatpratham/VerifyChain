@@ -3,10 +3,10 @@ import React from 'react';
 export function FormContainer({ title, subtitle, children }) {
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+      <div className="max-w-md w-full bg-[--vc-surface] p-8 rounded-[--radius-md] border border-[--vc-border] shadow-sm">
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">{title}</h2>
-          {subtitle && <p className="mt-2 text-sm text-gray-600">{subtitle}</p>}
+          <h2 className="text-[--text-2xl] font-bold text-[--vc-text-primary] font-[--font-heading] tracking-tight">{title}</h2>
+          {subtitle && <p className="mt-2 text-[--text-xs] text-[--vc-text-secondary]">{subtitle}</p>}
         </div>
         {children}
       </div>
@@ -18,8 +18,8 @@ export function Input({ id, label, type = 'text', value, onChange, placeholder, 
   return (
     <div className="mb-4">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label htmlFor={id} className="block text-[--text-xs] font-medium text-[--vc-text-primary] mb-1">
+          {label} {required && <span className="text-[--vc-error]">*</span>}
         </label>
       )}
       <input
@@ -31,12 +31,12 @@ export function Input({ id, label, type = 'text', value, onChange, placeholder, 
         placeholder={placeholder}
         disabled={disabled}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`w-full px-3 py-2 border rounded-lg shadow-sm font-sans focus:outline-none focus:ring-2 focus:ring-brand-light ${
-          error ? 'border-red-500 text-red-900' : 'border-gray-300 text-gray-900'
-        } disabled:bg-gray-100 disabled:cursor-not-allowed`}
+        className={`w-full px-3 py-2 border rounded-[--radius-md] text-[--text-xs] text-[--vc-text-primary] bg-[--vc-surface] focus:outline-none focus:ring-2 focus:ring-[--vc-brand] ${
+          error ? 'border-[--vc-error]' : 'border-[--vc-border]'
+        } disabled:bg-[--vc-bg-muted] disabled:cursor-not-allowed`}
       />
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-xs text-red-600">
+        <p id={`${id}-error`} className="mt-1 text-[11px] text-[--vc-error-text]">
           {error}
         </p>
       )}
@@ -50,8 +50,8 @@ export function PasswordInput({ id, label, value, onChange, placeholder, error, 
   return (
     <div className="mb-4">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label htmlFor={id} className="block text-[--text-xs] font-medium text-[--vc-text-primary] mb-1">
+          {label} {required && <span className="text-[--vc-error]">*</span>}
         </label>
       )}
       <div className="relative">
@@ -64,21 +64,21 @@ export function PasswordInput({ id, label, value, onChange, placeholder, error, 
           placeholder={placeholder}
           disabled={disabled}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`w-full pl-3 pr-10 py-2 border rounded-lg shadow-sm font-sans focus:outline-none focus:ring-2 focus:ring-brand-light ${
-            error ? 'border-red-500 text-red-900' : 'border-gray-300 text-gray-900'
-          } disabled:bg-gray-100 disabled:cursor-not-allowed`}
+          className={`w-full pl-3 pr-10 py-2 border rounded-[--radius-md] text-[--text-xs] text-[--vc-text-primary] bg-[--vc-surface] focus:outline-none focus:ring-2 focus:ring-[--vc-brand] ${
+            error ? 'border-[--vc-error]' : 'border-[--vc-border]'
+          } disabled:bg-[--vc-bg-muted] disabled:cursor-not-allowed`}
         />
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
           disabled={disabled}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-gray-500 hover:text-brand focus:outline-none"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-[11px] text-[--vc-text-tertiary] hover:text-[--vc-text-primary] focus:outline-none"
         >
           {showPassword ? 'Hide' : 'Show'}
         </button>
       </div>
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-xs text-red-600">
+        <p id={`${id}-error`} className="mt-1 text-[11px] text-[--vc-error-text]">
           {error}
         </p>
       )}
@@ -91,18 +91,9 @@ export function SubmitButton({ children, loading = false, disabled = false }) {
     <button
       type="submit"
       disabled={loading || disabled}
-      className="w-full mt-2 py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="w-full mt-2 py-2.5 px-4 rounded-[--radius-md] text-[--text-xs] font-semibold text-white bg-[--vc-brand] hover:bg-[--vc-brand-hover] focus:outline-none focus:ring-2 focus:ring-[--vc-brand] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {loading ? 'Processing...' : children}
     </button>
-  );
-}
-
-export function ErrorBanner({ message }) {
-  if (!message) return null;
-  return (
-    <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-      {message}
-    </div>
   );
 }

@@ -108,12 +108,12 @@ export function PublicTrustPortal() {
       <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
 
         {/* 1. Supplier Hero Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-neutral-900 to-neutral-950 border border-neutral-800 p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-[--radius-md] bg-[--vc-bg-inverse] border border-neutral-800 p-8 shadow-md">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-8 border-b border-neutral-800/80">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-100 tracking-tight">{profile.display_name}</h1>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border ${getTrustBadgeColor()}`}>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-[--font-heading]">{profile.display_name}</h1>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-[--radius-sm] text-xs font-mono font-bold border ${getTrustBadgeColor()}`}>
                   <Certificate size={14} />
                   {trustLevel}
                 </span>
@@ -139,7 +139,7 @@ export function PublicTrustPortal() {
             </div>
 
             {/* Public Score Badge */}
-            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-neutral-900/90 border border-neutral-800 shadow-inner shrink-0">
+            <div className="flex flex-col items-center justify-center p-4 rounded-[--radius-md] bg-neutral-900/90 border border-neutral-800 shrink-0">
               <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-neutral-950 border-4 border-emerald-500/30">
                 <span className="text-3xl font-black text-emerald-400 font-mono">{scoreVal}</span>
                 <span className="absolute bottom-2 text-[9px] text-neutral-500 font-mono">/ 100</span>

@@ -1,10 +1,12 @@
+import { memo } from 'react';
+
 /**
  * Table.jsx
  * Data table system. DESIGN_SYSTEM.md: prefer tables over cards for structured data.
  * Clear spacing, readable typography, subtle borders, sticky headers.
  */
 
-export function Table({ children, className = '' }) {
+export const Table = memo(function Table({ children, className = '' }) {
   return (
     <div className="w-full overflow-x-auto">
       <table
@@ -19,9 +21,9 @@ export function Table({ children, className = '' }) {
       </table>
     </div>
   );
-}
+});
 
-export function Thead({ children, sticky = false }) {
+export const Thead = memo(function Thead({ children, sticky = false }) {
   return (
     <thead
       className={[
@@ -34,17 +36,17 @@ export function Thead({ children, sticky = false }) {
       {children}
     </thead>
   );
-}
+});
 
-export function Tbody({ children }) {
+export const Tbody = memo(function Tbody({ children }) {
   return (
     <tbody className="divide-y divide-[--vc-border-subtle]">
       {children}
     </tbody>
   );
-}
+});
 
-export function Tr({ children, className = '', onClick }) {
+export const Tr = memo(function Tr({ children, className = '', onClick }) {
   return (
     <tr
       className={[
@@ -59,9 +61,9 @@ export function Tr({ children, className = '', onClick }) {
       {children}
     </tr>
   );
-}
+});
 
-export function Th({ children, className = '', align = 'left', ...props }) {
+export const Th = memo(function Th({ children, className = '', align = 'left', ...props }) {
   const alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' }[align];
   return (
     <th
@@ -78,9 +80,9 @@ export function Th({ children, className = '', align = 'left', ...props }) {
       {children}
     </th>
   );
-}
+});
 
-export function Td({ children, className = '', align = 'left', ...props }) {
+export const Td = memo(function Td({ children, className = '', align = 'left', ...props }) {
   const alignClass = { left: 'text-left', center: 'text-center', right: 'text-right' }[align];
   return (
     <td
@@ -96,4 +98,4 @@ export function Td({ children, className = '', align = 'left', ...props }) {
       {children}
     </td>
   );
-}
+});

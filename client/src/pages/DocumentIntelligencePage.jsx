@@ -2,6 +2,7 @@
  * DocumentIntelligencePage.jsx
  * Dedicated Workspace Component for Phase 9.3 AI Document Intelligence Platform.
  * Displays uploaded document list, classification badges, extracted fields, validation results, fraud indicators, AI summary, and human review approval workflow.
+ * Strictly adheres to DESIGN_SYSTEM.md enterprise tokens.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -96,205 +97,136 @@ export function DocumentIntelligencePage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[600px]">
-        <div className="flex flex-col items-center gap-3">
-          <FileText className="w-10 h-10 text-blue-600 animate-pulse" />
-          <span className="text-sm font-semibold text-gray-700">Loading Document Intelligence Platform...</span>
-        </div>
+      <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3 text-[--vc-text-tertiary]">
+        <Brain size={24} className="animate-spin text-[--vc-brand]" />
+        <span className="text-[--text-xs] font-semibold">Loading AI Document Intelligence Workspace...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+      {/* Workspace Header */}
+      <div className="p-6 sm:p-8 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
-            <Sparkle size={16} weight="fill" /> Phase 9.3 Document Understanding
+          <div className="flex items-center gap-2 text-[--text-xs] font-semibold text-[--vc-brand] uppercase tracking-wider mb-1 font-mono">
+            <Brain size={16} weight="bold" /> Phase 9.3 AI Document Processing Engine
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-            AI Document Intelligence Platform
+          <h1 className="text-[--text-2xl] font-bold text-[--vc-text-primary] tracking-tight font-[--font-heading]">
+            AI Document Intelligence & Classification
           </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Automated document OCR, field extraction, validation, fraud detection, and human review approval workflow.
+          <p className="text-[--text-xs] text-[--vc-text-secondary] mt-1">
+            Automated OCR extraction, statutory validation, anomaly detection, and human review governance.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <select
             value={selectedDocType}
             onChange={(e) => setSelectedDocType(e.target.value)}
-            className="px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-xs font-medium text-gray-800 shadow-xs"
+            className="p-2 bg-[--vc-surface] border border-[--vc-border] rounded-[--radius-md] text-[--text-xs] text-[--vc-text-primary]"
           >
-            <option value="GST_CERTIFICATE">GST Certificate</option>
-            <option value="PAN">PAN Card</option>
-            <option value="UDYAM_CERTIFICATE">Udyam Certificate</option>
-            <option value="COMMERCIAL_INVOICE">Commercial Invoice</option>
+            <option value="GST_CERTIFICATE">GST Registration Certificate</option>
+            <option value="PAN">PAN Card Document</option>
+            <option value="UDYAM_CERTIFICATE">Udyam Registration</option>
+            <option value="COMMERCIAL_INVOICE">Tax Commercial Invoice</option>
           </select>
-
           <button
             onClick={handleTriggerAnalysis}
             disabled={analyzing}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-sm transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-[--vc-brand] hover:bg-[--vc-brand-hover] text-white text-[--text-xs] font-semibold rounded-[--radius-md] flex items-center gap-2 transition-all disabled:opacity-50"
           >
-            <UploadSimple size={18} className={analyzing ? 'animate-spin' : ''} />
-            {analyzing ? 'Processing Document...' : 'Analyze New Document'}
+            <UploadSimple size={16} />
+            {analyzing ? 'Analyzing Document...' : 'Run AI Analysis'}
           </button>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Analyzed Document History */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-gray-900">Analyzed Documents</h3>
-            <span className="text-xs text-gray-500 font-medium">{documents.length} Records</span>
-          </div>
+      {/* Main Grid: Document Selector Sidebar & Analysis Inspector */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto">
+        {/* Documents List */}
+        <div className="bg-[--vc-surface-raised] rounded-[--radius-md] p-5 border border-[--vc-border] flex flex-col gap-4">
+          <h3 className="text-[--text-sm] font-bold text-[--vc-text-primary] pb-2 border-b border-[--vc-border] font-[--font-heading]">
+            Analyzed Documents ({documents.length})
+          </h3>
+          <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
             {documents.map((doc) => (
               <div
-                key={doc.analysis_id || doc.id}
-                onClick={() => {
-                  setSelectedDoc(doc);
-                  setEditFields({});
-                }}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 ${
-                  selectedDoc?.analysis_id === doc.analysis_id
-                    ? 'bg-blue-50/70 border-blue-600 shadow-xs'
-                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                key={doc.id}
+                onClick={() => setSelectedDoc(doc)}
+                className={`p-3 rounded-[--radius-sm] border cursor-pointer transition-all text-[--text-xs] ${
+                  selectedDoc?.id === doc.id
+                    ? 'bg-[--vc-brand-subtle] border-[--vc-brand] text-[--vc-brand] font-semibold'
+                    : 'bg-[--vc-bg-base] border-[--vc-border] text-[--vc-text-primary] hover:bg-[--vc-bg-muted]'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-900 truncate">{doc.document_name}</span>
-                  <span
-                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
-                      doc.review_status === 'APPROVED'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : doc.review_status === 'REJECTED'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {doc.review_status}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold truncate">{doc.file_name || doc.fileName}</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-[--radius-sm] bg-[--vc-bg-muted] text-[--vc-text-secondary]">
+                    {doc.document_type || doc.documentType}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between text-[11px] text-gray-500">
-                  <span>Type: {doc.document_type}</span>
-                  <span>Confidence: {((doc.overall_confidence || 0.95) * 100).toFixed(0)}%</span>
+                <div className="flex items-center justify-between text-[10px] text-[--vc-text-tertiary] font-mono">
+                  <span>Confidence: {doc.confidence_score || doc.confidenceScore || 98}%</span>
+                  <span>{doc.status || 'PROCESSED'}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right Column: Selected Document Analysis Details (2 cols) */}
-        {selectedDoc ? (
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            {/* Classification & Quality Banner */}
-            <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase">
-                    {selectedDoc.category || 'STATUTORY_RECORD'}
-                  </span>
-                  <span className="text-xs text-slate-400">Quality Score: {((selectedDoc.quality_score || 0.98) * 100).toFixed(0)}%</span>
+        {/* Selected Document Details Inspector */}
+        <div className="lg:col-span-2 bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-6">
+          {selectedDoc ? (
+            <>
+              <div className="flex items-center justify-between pb-3 border-b border-[--vc-border]">
+                <div>
+                  <h3 className="text-[--text-sm] font-bold text-[--vc-text-primary] font-[--font-heading]">{selectedDoc.file_name || selectedDoc.fileName}</h3>
+                  <span className="text-[10px] font-mono text-[--vc-text-tertiary]">ID: {selectedDoc.id} • Processed via Verification Pipeline</span>
                 </div>
-                <h2 className="text-lg font-bold text-white">{selectedDoc.document_name}</h2>
-                <p className="text-xs text-slate-300 mt-1">Authority: {selectedDoc.issuing_authority}</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleApprove(selectedDoc.id)}
+                    className="px-3 py-1.5 bg-[--vc-success-bg] text-[--vc-success-text] hover:bg-[--vc-success-bg]/80 border border-[--vc-success]/30 rounded-[--radius-md] text-[--text-xs] font-semibold flex items-center gap-1"
+                  >
+                    <CheckCircle size={14} /> Approve Extraction
+                  </button>
+                  <button
+                    onClick={() => handleReject(selectedDoc.id)}
+                    className="px-3 py-1.5 bg-[--vc-error-bg] text-[--vc-error-text] hover:bg-[--vc-error-bg]/80 border border-[--vc-error]/30 rounded-[--radius-md] text-[--text-xs] font-semibold flex items-center gap-1"
+                  >
+                    <XCircle size={14} /> Reject
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleReject(selectedDoc.analysis_id)}
-                  className="px-4 py-2 rounded-xl border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/20"
-                >
-                  Reject Document
-                </button>
-                <button
-                  onClick={() => handleApprove(selectedDoc.analysis_id)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm"
-                >
-                  Approve & Map Record
-                </button>
-              </div>
-            </div>
-
-            {/* Extracted Fields Editor */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-gray-900">Extracted Fields & Attributes</h3>
-                <span className="text-xs text-gray-500 font-medium">Human Field Overrides Enabled</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(selectedDoc.extracted_fields || []).map((f) => (
-                  <div key={f.id || f.field_key} className="p-3.5 rounded-xl border border-gray-200 bg-gray-50/50 flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-gray-700">{f.field_label || f.field_key}</label>
-                      <span className="text-[10px] text-emerald-600 font-semibold">
-                        Confidence {((f.confidence_score || 0.95) * 100).toFixed(0)}%
-                      </span>
-                    </div>
-
-                    <input
-                      type="text"
-                      defaultValue={f.field_value}
-                      onChange={(e) =>
-                        setEditFields((prev) => ({ ...prev, [f.field_key]: e.target.value }))
-                      }
-                      className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs text-gray-900 font-medium focus:border-blue-600 focus:outline-none"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Validation & Fraud Risk Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Validation Rules */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-4">
-                <h3 className="text-sm font-bold text-gray-900">Validation Checks</h3>
-                <div className="flex flex-col gap-2.5">
-                  {(selectedDoc.validations || []).map((v, idx) => (
-                    <div key={idx} className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-start gap-2 text-xs">
-                      <CheckCircle size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-gray-900">{v.rule_name}</strong>
-                        <p className="text-gray-600 text-[11px] mt-0.5">{v.message}</p>
-                      </div>
+              {/* AI Extracted Fields Table */}
+              <div className="space-y-3">
+                <h4 className="text-[--text-xs] font-bold text-[--vc-text-primary] uppercase tracking-wider font-mono">Extracted Key-Value Telemetry</h4>
+                <div className="p-4 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] space-y-2 text-[--text-xs]">
+                  {Object.entries(selectedDoc.extracted_fields || selectedDoc.extractedFields || {}).map(([key, val]) => (
+                    <div key={key} className="flex justify-between py-1 border-b border-[--vc-border] last:border-none">
+                      <span className="font-mono text-[--vc-text-tertiary] capitalize">{key.replace(/_/g, ' ')}</span>
+                      <span className="font-bold text-[--vc-text-primary] font-mono">{String(val)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Fraud Indicators */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-4">
-                <h3 className="text-sm font-bold text-gray-900">Fraud & Anomaly Indicators</h3>
-                <div className="flex flex-col gap-2.5">
-                  {(selectedDoc.fraud_indicators || []).map((fi, idx) => (
-                    <div key={idx} className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/60 flex items-start gap-2 text-xs">
-                      <ShieldCheck size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="text-emerald-900">{fi.title}</strong>
-                        <p className="text-emerald-800 text-[11px] mt-0.5">{fi.description}</p>
-                      </div>
-                    </div>
-                  ))}
+              {/* AI Summary */}
+              {selectedDoc.summary && (
+                <div className="p-4 rounded-[--radius-sm] bg-[--vc-brand-subtle] border border-[--vc-brand]/20 text-[--text-xs] space-y-1">
+                  <span className="font-bold text-[--vc-brand] font-mono text-[10px] uppercase">AI Compliance Analysis</span>
+                  <p className="text-[--vc-text-primary] leading-[--lh-relaxed]">{selectedDoc.summary}</p>
                 </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="lg:col-span-2 bg-white rounded-2xl p-12 border border-gray-200 flex flex-col items-center justify-center text-center">
-            <FileText size={48} className="text-gray-300 mb-3" />
-            <h3 className="text-base font-bold text-gray-800">No Document Selected</h3>
-            <p className="text-xs text-gray-500 mt-1 max-w-sm">Select an existing document from the history list or click "Analyze New Document" to process a record.</p>
-          </div>
-        )}
+              )}
+            </>
+          ) : (
+            <div className="p-12 text-center text-[--text-xs] text-[--vc-text-tertiary]">Select a document to inspect AI extraction payload.</div>
+          )}
+        </div>
+
       </div>
     </div>
   );

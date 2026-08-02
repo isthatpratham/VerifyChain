@@ -2,6 +2,7 @@
  * PredictiveIntelligencePage.jsx
  * Enterprise Predictive Compliance & Forecasting Workspace (Phase 9.5).
  * Features prediction overview dashboard, early warning alert center, visual forecast timeline, and interactive "What-If" scenario simulator.
+ * Strictly adheres to DESIGN_SYSTEM.md tokens.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ import {
   ChartLineUp,
   Info,
   Lightbulb,
+  ArrowsClockwise,
 } from '@phosphor-icons/react';
 import axios from 'axios';
 
@@ -67,11 +69,9 @@ export function PredictiveIntelligencePage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
-          <Brain size={20} className="animate-spin text-blue-600" />
-          Synthesizing historical telemetry and forecasting predictive risk...
-        </div>
+      <div className="p-12 flex flex-col items-center justify-center min-h-[400px] gap-3 text-[--vc-text-tertiary]">
+        <Brain size={24} className="animate-spin text-[--vc-brand]" />
+        <span className="text-[--text-xs] font-semibold">Synthesizing historical telemetry and forecasting predictive risk...</span>
       </div>
     );
   }
@@ -80,176 +80,146 @@ export function PredictiveIntelligencePage() {
   const riskFc = forecast?.riskForecast || { overallRisk: 12.3, riskTrend: 'STABLE_LOW' };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto flex flex-col gap-8">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+      <div className="p-6 sm:p-8 rounded-[--radius-md] bg-[--vc-surface-raised] border border-[--vc-border] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-[--text-xs] font-semibold text-[--vc-brand] uppercase tracking-wider mb-1 font-mono">
             <ChartLineUp size={16} weight="bold" /> Phase 9.5 Enterprise Predictive Engine
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-[--text-2xl] font-bold text-[--vc-text-primary] tracking-tight font-[--font-heading]">
             Predictive Intelligence & Forecasting
           </h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-[--text-xs] text-[--vc-text-secondary] mt-1">
             Proactive forecasting of compliance renewals, supplier trust trajectories, emerging risk vectors, and "What-If" scenario impact.
           </p>
         </div>
 
         <button
           onClick={fetchData}
-          className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold transition-all"
+          className="px-4 py-2.5 rounded-[--radius-md] bg-[--vc-bg-base] hover:bg-[--vc-bg-muted] border border-[--vc-border] text-[--vc-text-primary] text-[--text-xs] font-semibold transition-all flex items-center gap-2"
         >
-          Recalculate Forecasts
+          <ArrowsClockwise size={15} /> Refresh Forecast
         </button>
       </div>
 
-      {/* Top 4 Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Current & Projected Trust */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-2">
-          <span className="text-xs text-gray-500 font-semibold uppercase">30-Day Projected Trust</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl md:text-3xl font-extrabold text-gray-900">{trustFc.projected30dTrust}</span>
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-              <TrendUp size={14} /> +{(trustFc.projected30dTrust - trustFc.currentTrust).toFixed(1)}
-            </span>
-          </div>
-          <span className="text-[11px] text-gray-400">Current Standing: {trustFc.currentTrust}/100</span>
+      {/* Metric Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[--vc-text-tertiary]">Current Trust Level</span>
+          <div className="text-[--text-3xl] font-bold font-mono text-[--vc-text-primary]">{trustFc.currentTrust}%</div>
+          <span className="text-[11px] text-[--vc-success-text] font-semibold flex items-center gap-1">
+            <TrendUp size={14} /> Verified Baseline
+          </span>
         </div>
 
-        {/* Projected 90-Day Risk */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-2">
-          <span className="text-xs text-gray-500 font-semibold uppercase">90-Day Risk Trajectory</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl md:text-3xl font-extrabold text-emerald-600">{riskFc.overallRisk}%</span>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-              {riskFc.riskTrend}
-            </span>
-          </div>
-          <span className="text-[11px] text-gray-400">Low Exposure Risk Level</span>
+        <div className="bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[--vc-text-tertiary]">30-Day Projected Trust</span>
+          <div className="text-[--text-3xl] font-bold font-mono text-[--vc-brand]">{trustFc.projected30dTrust}%</div>
+          <span className="text-[11px] text-[--vc-brand] font-semibold">Forecast Horizon: +30 Days</span>
         </div>
 
-        {/* Early Warnings Active */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-2">
-          <span className="text-xs text-gray-500 font-semibold uppercase">Active Early Warnings</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl md:text-3xl font-extrabold text-amber-600">{earlyWarnings.length}</span>
-            <span className="text-xs font-bold text-amber-600 flex items-center gap-1">
-              <Warning size={14} /> Proactive
-            </span>
-          </div>
-          <span className="text-[11px] text-gray-400">Zero Critical Bottlenecks</span>
+        <div className="bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[--vc-text-tertiary]">90-Day Projected Trust</span>
+          <div className="text-[--text-3xl] font-bold font-mono text-[--vc-brand]">{trustFc.projected90dTrust}%</div>
+          <span className="text-[11px] text-[--vc-brand] font-semibold">Forecast Horizon: +90 Days</span>
         </div>
 
-        {/* Overall Confidence */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-2">
-          <span className="text-xs text-gray-500 font-semibold uppercase">Forecast Model Certainty</span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl md:text-3xl font-extrabold text-blue-600">
-              {((forecast?.overallConfidenceScore || 0.95) * 100).toFixed(0)}%
-            </span>
-            <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
-              <ShieldCheck size={14} /> Verified
-            </span>
-          </div>
-          <span className="text-[11px] text-gray-400">Grounded in VerifyChain Telemetry</span>
+        <div className="bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[--vc-text-tertiary]">Overall Risk Telemetry</span>
+          <div className="text-[--text-3xl] font-bold font-mono text-[--vc-success-text]">{riskFc.overallRisk}%</div>
+          <span className="text-[11px] text-[--vc-success-text] font-semibold uppercase tracking-wider font-mono">{riskFc.riskTrend}</span>
         </div>
       </div>
 
-      {/* Main Grid: Early Warnings + Scenario Simulator */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Early Warning Alert Center */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Proactive Early Warning Center</h3>
-              <p className="text-xs text-gray-500">Preventive alerts generated before compliance or trust degradation occurs.</p>
-            </div>
-            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-              {earlyWarnings.length} Warnings Active
-            </span>
+      {/* Forecast & Simulator Main Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Forecast Timeline Details */}
+        <div className="lg:col-span-2 bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-6">
+          <div className="flex items-center justify-between pb-3 border-b border-[--vc-border]">
+            <h3 className="text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2 font-[--font-heading]">
+              <Sparkle size={18} className="text-[--vc-brand]" /> Predictive Renewal Telemetry
+            </h3>
+            <span className="text-[10px] font-mono text-[--vc-text-tertiary]">ML Projection Model</span>
           </div>
 
-          <div className="flex flex-col gap-4">
-            {earlyWarnings.map((warn, idx) => (
-              <div key={idx} className="p-5 rounded-xl border border-gray-200 bg-gray-50/50 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Warning size={18} className="text-amber-500" />
-                    <h4 className="text-sm font-bold text-gray-900">{warn.title}</h4>
+          <div className="space-y-4">
+            {forecast?.renewalsForecast?.length > 0 ? (
+              forecast.renewalsForecast.map((item, idx) => (
+                <div key={idx} className="p-4 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] flex items-center justify-between text-[--text-xs]">
+                  <div className="space-y-1">
+                    <div className="font-bold text-[--vc-text-primary] flex items-center gap-2">
+                      <span>{item.authority} Renewal</span>
+                      <span className="px-2 py-0.5 rounded-[--radius-sm] text-[10px] bg-[--vc-brand-subtle] text-[--vc-brand] font-mono font-bold">
+                        {item.confidence}% Confidence
+                      </span>
+                    </div>
+                    <p className="text-[--vc-text-secondary] text-[11px]">{item.recommendation}</p>
                   </div>
-                  <span className="text-[11px] font-bold text-gray-600 bg-white px-2.5 py-1 rounded-md border border-gray-200">
-                    {warn.time_horizon}
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-700 leading-relaxed">{warn.predicted_impact}</p>
-
-                <div className="p-3 rounded-lg bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex items-start gap-2">
-                  <Lightbulb size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">Preventive Action Plan:</span> {warn.preventive_action}
+                  <div className="text-right font-mono">
+                    <div className="font-bold text-[--vc-text-primary]">{item.daysUntilExpiry} Days</div>
+                    <div className="text-[10px] text-[--vc-text-tertiary]">Remaining</div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-[--text-xs] text-[--vc-text-tertiary]">
+                No upcoming statutory renewal deadlines requiring predictive intervention.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
-        {/* Right 1 Col: Interactive What-If Scenario Simulator */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs flex flex-col gap-6">
-          <div>
-            <h3 className="text-base font-bold text-gray-900">"What-If" Scenario Simulator</h3>
-            <p className="text-xs text-gray-500 mt-1">Simulate operational events & estimate business impact.</p>
+        {/* What-If Simulator */}
+        <div className="bg-[--vc-surface-raised] rounded-[--radius-md] p-6 border border-[--vc-border] flex flex-col gap-6">
+          <div className="pb-3 border-b border-[--vc-border]">
+            <h3 className="text-[--text-sm] font-bold text-[--vc-text-primary] flex items-center gap-2 font-[--font-heading]">
+              <Sliders size={18} className="text-[--vc-brand]" /> "What-If" Scenario Simulator
+            </h3>
+            <p className="text-[11px] text-[--vc-text-secondary] mt-1">Simulate compliance shock events to analyze score impact.</p>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <label className="text-xs font-semibold text-gray-700">Select Scenario:</label>
+          <div className="space-y-3 text-[--text-xs]">
+            <label className="block text-[--vc-text-primary] font-semibold">Select Scenario</label>
             <select
               value={selectedScenario}
               onChange={(e) => setSelectedScenario(e.target.value)}
-              className="w-full px-3 py-2 text-xs text-gray-900 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-600"
+              className="w-full p-2.5 bg-[--vc-surface] border border-[--vc-border] rounded-[--radius-md] text-[--vc-text-primary]"
             >
-              <option value="GST_DELAY">GST Statutory Filing Delayed 30 Days</option>
-              <option value="ISO_LAPSE">ISO 9001 Quality Certification Lapses</option>
-              <option value="SUPPLIER_DEFAULT">Tier-1 Supplier Enters Default</option>
-              <option value="TRUST_IMPROVEMENT">Enable Continuous ERP Connector</option>
+              <option value="GST_DELAY">GST filing delayed by 30 days</option>
+              <option value="EPFO_MISMATCH">EPFO payment discrepancy</option>
+              <option value="FSSAI_EXPIRATION">FSSAI license expiration</option>
             </select>
 
             <button
               onClick={() => handleRunSimulation(selectedScenario)}
               disabled={simulating}
-              className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition-all shadow-xs flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-[--radius-md] bg-[--vc-brand] hover:bg-[--vc-brand-hover] text-white font-semibold text-[--text-xs] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {simulating ? <Brain size={16} className="animate-spin" /> : <Lightning size={16} />}
-              Run Scenario Simulation
+              <Lightning size={16} />
+              {simulating ? 'Running Simulation...' : 'Run Impact Simulation'}
             </button>
           </div>
 
-          {/* Simulation Result */}
           {simulationResult && (
-            <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-col gap-3">
-              <h4 className="text-xs font-extrabold text-blue-950 uppercase">{simulationResult.title}</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 rounded-lg bg-white border border-gray-200">
-                  <span className="text-[10px] text-gray-500">Trust Impact</span>
-                  <p className={`font-bold ${simulationResult.simulatedResults.trustImpact < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {simulationResult.simulatedResults.trustImpact > 0 ? '+' : ''}{simulationResult.simulatedResults.trustImpact} pts
-                  </p>
-                </div>
-                <div className="p-2 rounded-lg bg-white border border-gray-200">
-                  <span className="text-[10px] text-gray-500">Risk Impact</span>
-                  <p className={`font-bold ${simulationResult.simulatedResults.riskImpact > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    {simulationResult.simulatedResults.riskImpact > 0 ? '+' : ''}{simulationResult.simulatedResults.riskImpact}%
-                  </p>
-                </div>
+            <div className="p-4 rounded-[--radius-sm] bg-[--vc-bg-base] border border-[--vc-border] space-y-2 text-[--text-xs]">
+              <div className="font-bold text-[--vc-text-primary] border-b border-[--vc-border] pb-1 font-mono uppercase text-[10px]">
+                Simulation Outcome
               </div>
-              <div className="text-xs text-gray-700">
-                <span className="font-bold text-gray-900">Business Impact:</span> {simulationResult.simulatedResults.businessImpact}
+              <div className="flex justify-between font-mono">
+                <span className="text-[--vc-text-secondary]">Score Delta:</span>
+                <span className="font-bold text-[--vc-error-text]">{simulationResult.projectedScoreDelta} pts</span>
               </div>
+              <div className="flex justify-between font-mono">
+                <span className="text-[--vc-text-secondary]">Projected Score:</span>
+                <span className="font-bold text-[--vc-text-primary]">{simulationResult.projectedScore}</span>
+              </div>
+              <p className="text-[11px] text-[--vc-text-secondary] pt-1">{simulationResult.mitigationAdvice}</p>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 /**
  * EnterpriseAIAdminPage.jsx
  * Enterprise AI Administration & Governance Workspace (Phase 11.4).
+ * Strictly adheres to DESIGN_SYSTEM.md enterprise tokens.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -28,7 +29,7 @@ import {
 import axios from 'axios';
 
 export function EnterpriseAIAdminPage() {
-  const [activeTab, setActiveTab] = useState('PROVIDERS'); // PROVIDERS, MODELS, PROMPTS, POLICIES, QUOTAS, CONFIG, AUDIT
+  const [activeTab, setActiveTab] = useState('PROVIDERS');
   const [stats, setStats] = useState(null);
   const [providers, setProviders] = useState([]);
   const [models, setModels] = useState([]);
@@ -102,417 +103,185 @@ export function EnterpriseAIAdminPage() {
       setShowPromptModal(false);
       fetchAIAdminData();
     } catch (err) {
-      alert(`Prompt creation failed: ${err.message}`);
+      alert(`Prompt template creation failed: ${err.message}`);
     }
   };
 
-  const handleSetQuota = async (e) => {
+  const handleCreateQuota = async (e) => {
     e.preventDefault();
-    if (!quotaScopeId) return;
     try {
       await axios.post('/api/v1/ai-admin/quotas', {
-        scopeType: quotaScope,
-        scopeId: quotaScopeId,
-        dailyLimit: quotaDaily,
-        monthlyLimit: quotaMonthly,
+        scope: quotaScope,
+        scopeId: quotaScopeId || 'GLOBAL',
+        dailyTokenLimit: parseInt(quotaDaily, 10),
+        monthlyTokenLimit: parseInt(quotaMonthly, 10),
       });
-      setQuotaScopeId('');
       setShowQuotaModal(false);
       fetchAIAdminData();
     } catch (err) {
-      alert(`Quota setting failed: ${err.message}`);
+      alert(`Quota allocation failed: ${err.message}`);
     }
   };
 
-  const handleRollbackPrompt = async (promptId, versionNumber) => {
-    try {
-      await axios.post(`/api/v1/ai-admin/prompts/${promptId}/rollback`, { versionNumber });
-      fetchAIAdminData();
-    } catch (err) {
-      alert(`Prompt rollback failed: ${err.message}`);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center min-h-[60vh] gap-3 text-[--vc-text-tertiary]">
+        <Brain size={24} className="animate-spin text-[--vc-brand]" />
+        <span className="text-[--text-xs] font-semibold">Loading AI Platform Governance Admin...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8 bg-gray-50/50 min-h-screen">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       {/* Header Banner */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs flex flex-col gap-6">
+      <div className="bg-[--vc-surface-raised] p-6 rounded-[--radius-md] border border-[--vc-border] flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="p-3 bg-indigo-600 text-white rounded-xl shadow-xs">
+            <div className="p-3 bg-[--vc-brand] text-white rounded-[--radius-sm]">
               <Brain size={28} weight="bold" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">AI Operations Center & Governance</h1>
-              <p className="text-xs text-gray-600 font-medium mt-0.5">
-                Provider-Agnostic AI Administration, Model Catalogs, Prompt Versioning & Quotas
+              <h1 className="text-[--text-xl] font-bold text-[--vc-text-primary] tracking-tight font-[--font-heading]">
+                Enterprise AI Administration & Governance
+              </h1>
+              <p className="text-[--text-xs] text-[--vc-text-secondary] font-medium mt-0.5">
+                Multi-Model Infrastructure Management, System Prompt Catalog, Safety Governance & Token Accounting
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setShowQuotaModal(true)}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-            >
-              <Gauge size={16} weight="bold" /> Configure Quotas
-            </button>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowPromptModal(true)}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              className="px-3.5 py-2 bg-[--vc-brand] hover:bg-[--vc-brand-hover] text-white text-[--text-xs] font-semibold rounded-[--radius-md] flex items-center gap-1.5 transition-all"
             >
-              <Plus size={16} weight="bold" /> Create Prompt Template
+              <Plus size={15} weight="bold" /> New Prompt Template
+            </button>
+            <button
+              onClick={() => setShowQuotaModal(true)}
+              className="px-3.5 py-2 bg-[--vc-bg-base] hover:bg-[--vc-bg-muted] text-[--vc-text-primary] text-[--text-xs] font-semibold rounded-[--radius-md] border border-[--vc-border] flex items-center gap-1.5 transition-all"
+            >
+              <Gauge size={15} /> Allocate Quota
             </button>
           </div>
         </div>
 
-        {/* AI Operations KPIs */}
+        {/* AI Admin KPI Bar */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t border-gray-100 pt-5 text-xs">
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-              <span className="text-gray-500 font-semibold flex items-center gap-1.5">
-                <Cpu size={15} className="text-indigo-600" /> AI Providers
-              </span>
-              <div className="text-xl font-bold text-gray-900 mt-1">{stats.providersCount}</div>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 border-t border-[--vc-border] pt-5 text-[--text-xs]">
+            <div className="p-3 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border]">
+              <span className="text-[--vc-text-tertiary] font-mono text-[10px] uppercase">Active Providers</span>
+              <div className="text-[--text-lg] font-bold font-mono text-[--vc-text-primary] mt-1">{stats.activeProviders}</div>
             </div>
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-slate-700 font-semibold flex items-center gap-1.5">
-                <Sparkle size={15} className="text-slate-900" /> Model Catalog
-              </span>
-              <div className="text-xl font-bold text-slate-900 mt-1">{stats.modelsCount}</div>
+            <div className="p-3 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border]">
+              <span className="text-[--vc-text-tertiary] font-mono text-[10px] uppercase">Depl. AI Models</span>
+              <div className="text-[--text-lg] font-bold font-mono text-[--vc-brand] mt-1">{stats.activeModels}</div>
             </div>
-            <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
-              <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
-                <CodeBlock size={15} className="text-emerald-600" /> Production Prompts
-              </span>
-              <div className="text-xl font-bold text-emerald-900 mt-1">{stats.promptsCount}</div>
+            <div className="p-3 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border]">
+              <span className="text-[--vc-text-tertiary] font-mono text-[10px] uppercase">System Prompts</span>
+              <div className="text-[--text-lg] font-bold font-mono text-[--vc-success-text] mt-1">{stats.systemPromptsCount}</div>
             </div>
-            <div className="p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-100">
-              <span className="text-indigo-800 font-semibold flex items-center gap-1.5">
-                <Scales size={15} className="text-indigo-600" /> Active Policies
-              </span>
-              <div className="text-xl font-bold text-indigo-950 mt-1">{stats.policiesCount}</div>
+            <div className="p-3 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border]">
+              <span className="text-[--vc-text-tertiary] font-mono text-[10px] uppercase">Safety Policies</span>
+              <div className="text-[--text-lg] font-bold font-mono text-[--vc-warning-text] mt-1">{stats.activePolicies}</div>
             </div>
-            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-100">
-              <span className="text-amber-800 font-semibold flex items-center gap-1.5">
-                <ListChecks size={15} className="text-amber-600" /> Audit Events
-              </span>
-              <div className="text-xl font-bold text-amber-950 mt-1">{stats.auditEventsCount}</div>
+            <div className="p-3 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border]">
+              <span className="text-[--vc-text-tertiary] font-mono text-[10px] uppercase">Total Tokens (24h)</span>
+              <div className="text-[--text-lg] font-bold font-mono text-[--vc-info-text] mt-1">{stats.tokensConsumed24h?.toLocaleString() || 0}</div>
+            </div>
+            <div className="p-3 bg-[--vc-bg-base] rounded-[--radius-sm] border border-[--vc-border]">
+              <span className="text-[--vc-text-tertiary] font-mono text-[10px] uppercase">Avg AI Latency</span>
+              <div className="text-[--text-lg] font-bold font-mono text-[--vc-brand] mt-1">{stats.avgExecutionMs}ms</div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-gray-200 text-xs font-semibold text-gray-600">
-        <button
-          onClick={() => setActiveTab('PROVIDERS')}
-          className={`pb-3 px-3 transition-all border-b-2 cursor-pointer ${
-            activeTab === 'PROVIDERS' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent hover:text-gray-900'
-          }`}
-        >
-          Provider Registry ({providers.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('MODELS')}
-          className={`pb-3 px-3 transition-all border-b-2 cursor-pointer ${
-            activeTab === 'MODELS' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent hover:text-gray-900'
-          }`}
-        >
-          Model Catalog ({models.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('PROMPTS')}
-          className={`pb-3 px-3 transition-all border-b-2 cursor-pointer ${
-            activeTab === 'PROMPTS' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent hover:text-gray-900'
-          }`}
-        >
-          Prompt Library ({prompts.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('POLICIES')}
-          className={`pb-3 px-3 transition-all border-b-2 cursor-pointer ${
-            activeTab === 'POLICIES' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent hover:text-gray-900'
-          }`}
-        >
-          Governance Policies ({policies.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('QUOTAS')}
-          className={`pb-3 px-3 transition-all border-b-2 cursor-pointer ${
-            activeTab === 'QUOTAS' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent hover:text-gray-900'
-          }`}
-        >
-          Quota Management ({quotas.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('AUDIT')}
-          className={`pb-3 px-3 transition-all border-b-2 cursor-pointer ${
-            activeTab === 'AUDIT' ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent hover:text-gray-900'
-          }`}
-        >
-          AI Audit Trail ({auditEvents.length})
-        </button>
+      {/* Tabs Bar */}
+      <div className="flex items-center gap-2 border-b border-[--vc-border] overflow-x-auto pb-1">
+        {['PROVIDERS', 'MODELS', 'PROMPTS', 'POLICIES', 'QUOTAS'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-[--radius-md] font-medium text-[--text-xs] whitespace-nowrap transition-all ${
+              activeTab === tab
+                ? 'bg-[--vc-brand] text-white font-semibold'
+                : 'text-[--vc-text-secondary] hover:text-[--vc-text-primary] hover:bg-[--vc-bg-subtle]'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {/* Tab 1: Provider Registry */}
+      {/* Providers Grid */}
       {activeTab === 'PROVIDERS' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {providers.map((p) => (
-            <div key={p.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between gap-4">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] text-gray-500 font-semibold">{p.key}</span>
-                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700">
-                    {p.health_status}
+            <div key={p.id} className="bg-[--vc-surface-raised] p-5 rounded-[--radius-md] border border-[--vc-border] flex flex-col justify-between gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-[--font-heading] text-[--text-sm] font-bold text-[--vc-text-primary]">{p.name}</h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text] font-bold border border-[--vc-success]/20">
+                    {p.status || 'ACTIVE'}
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-gray-900">{p.name}</h3>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {p.capabilities_json && Array.isArray(p.capabilities_json) && p.capabilities_json.map((c, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700">
-                      {c}
-                    </span>
-                  ))}
-                </div>
+                <p className="text-[--text-xs] text-[--vc-text-secondary] font-mono">Code: {p.code}</p>
               </div>
-              <div className="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Priority: <strong className="text-gray-800">#{p.priority}</strong></span>
-                <span>Models: <strong className="text-indigo-600">{p.models?.length || 0}</strong></span>
+              <div className="pt-3 border-t border-[--vc-border] flex justify-between items-center text-[11px] text-[--vc-text-tertiary] font-mono">
+                <span>Priority: {p.priority || 1}</span>
+                <span>Type: {p.type || 'LLM_ENGINE'}</span>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Tab 2: Model Catalog */}
-      {activeTab === 'MODELS' && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900">Provider-Independent Model Catalog</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-gray-50/70 text-gray-600 border-b border-gray-100 font-semibold">
-                  <th className="py-3.5 px-4">Model Key</th>
-                  <th className="py-3.5 px-4">Display Name</th>
-                  <th className="py-3.5 px-4">Provider</th>
-                  <th className="py-3.5 px-4">Context Window</th>
-                  <th className="py-3.5 px-4">Streaming</th>
-                  <th className="py-3.5 px-4">Structured Output</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {models.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50/60">
-                    <td className="py-3.5 px-4 font-mono font-bold text-indigo-600">{m.key}</td>
-                    <td className="py-3.5 px-4 font-bold text-gray-900">{m.name}</td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-800">{m.provider?.name || m.provider_id}</td>
-                    <td className="py-3.5 px-4 font-mono text-gray-600">{m.context_window.toLocaleString()} tokens</td>
-                    <td className="py-3.5 px-4 font-semibold text-emerald-600">{m.supports_streaming ? 'Yes' : 'No'}</td>
-                    <td className="py-3.5 px-4 font-semibold text-emerald-600">{m.supports_structured_output ? 'Yes' : 'No'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Prompt Library */}
-      {activeTab === 'PROMPTS' && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900">Production Prompt Library & Versions</h3>
-            <button
-              onClick={() => setShowPromptModal(true)}
-              className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
-            >
-              + New Prompt Template
-            </button>
-          </div>
-          <div className="divide-y divide-gray-100 text-xs">
-            {prompts.map((pr) => (
-              <div key={pr.id} className="p-5 flex flex-col gap-3 hover:bg-gray-50/40">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-indigo-600">{pr.code}</span>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-800">
-                      {pr.category}
-                    </span>
-                  </div>
-                  <span className="text-gray-500 font-semibold">Active Version: <strong className="text-gray-900 font-mono">v{pr.current_version}</strong></span>
-                </div>
-                <h4 className="font-bold text-gray-900 text-sm">{pr.name}</h4>
-                {pr.system_prompt && (
-                  <p className="text-gray-600 italic bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                    System: "{pr.system_prompt}"
-                  </p>
-                )}
-
-                {/* Prompt Version List */}
-                <div className="flex flex-col gap-2 mt-2">
-                  <span className="font-bold text-gray-700">Version History:</span>
-                  {pr.versions?.map((v) => (
-                    <div key={v.id} className="p-3 bg-slate-50/60 rounded-xl border border-slate-200/80 flex items-center justify-between">
-                      <div>
-                        <div className="font-mono font-bold text-slate-900">v{v.version_number} ({v.status})</div>
-                        <div className="text-[11px] text-gray-600 font-mono mt-0.5">{v.template_text}</div>
-                      </div>
-                      {v.version_number !== pr.current_version && (
-                        <button
-                          onClick={() => handleRollbackPrompt(pr.id, v.version_number)}
-                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg font-bold cursor-pointer"
-                        >
-                          Rollback to v{v.version_number}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 4: AI Governance Policies */}
-      {activeTab === 'POLICIES' && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <h3 className="text-sm font-bold text-gray-900">AI Governance Rules & Policies</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-gray-50/70 text-gray-600 border-b border-gray-100 font-semibold">
-                  <th className="py-3.5 px-4">Policy Code</th>
-                  <th className="py-3.5 px-4">Policy Name</th>
-                  <th className="py-3.5 px-4">Rule Type</th>
-                  <th className="py-3.5 px-4">Rule Rules Matrix</th>
-                  <th className="py-3.5 px-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {policies.map((pol) => (
-                  <tr key={pol.id} className="hover:bg-gray-50/60">
-                    <td className="py-3.5 px-4 font-mono font-bold text-gray-900">{pol.code}</td>
-                    <td className="py-3.5 px-4 font-bold text-gray-900">{pol.name}</td>
-                    <td className="py-3.5 px-4 font-semibold text-indigo-600">{pol.rule_type}</td>
-                    <td className="py-3.5 px-4 font-mono text-gray-600">{JSON.stringify(pol.rules_json)}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700">
-                        {pol.is_active ? 'ACTIVE' : 'INACTIVE'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: New Prompt */}
+      {/* Modals */}
       {showPromptModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-base font-bold text-gray-900">Create Production Prompt Template</h3>
-              <button onClick={() => setShowPromptModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4 z-50">
+          <div className="bg-[--vc-surface-overlay] rounded-[--radius-md] max-w-md w-full p-6 border border-[--vc-border] flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-[--vc-border] pb-3">
+              <h3 className="text-[--text-base] font-bold text-[--vc-text-primary] font-[--font-heading]">Create System Prompt Template</h3>
+              <button onClick={() => setShowPromptModal(false)} className="text-[--vc-text-tertiary] hover:text-[--vc-text-primary]"><X size={20} /></button>
             </div>
-            <form onSubmit={handleCreatePrompt} className="flex flex-col gap-3 text-xs">
+            <form onSubmit={handleCreatePrompt} className="flex flex-col gap-3 text-[--text-xs]">
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">Prompt Code</label>
+                <label className="block text-[--vc-text-primary] font-semibold mb-1">Prompt Code</label>
                 <input
                   type="text"
-                  placeholder="PROMPT_SUPPLIER_AUDIT"
+                  placeholder="e.g. COMPLIANCE_ANALYSIS_V2"
                   value={promptCode}
                   onChange={(e) => setPromptCode(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono"
+                  className="w-full p-2.5 bg-[--vc-surface] border border-[--vc-border] rounded-[--radius-md] text-[--vc-text-primary]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">Display Name</label>
+                <label className="block text-[--vc-text-primary] font-semibold mb-1">Prompt Display Name</label>
                 <input
                   type="text"
-                  placeholder="Supplier Audit Synthesis Prompt"
+                  placeholder="e.g. Statutory Analysis System Prompt"
                   value={promptName}
                   onChange={(e) => setPromptName(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                  className="w-full p-2.5 bg-[--vc-surface] border border-[--vc-border] rounded-[--radius-md] text-[--vc-text-primary]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">Template Text</label>
+                <label className="block text-[--vc-text-primary] font-semibold mb-1">Template Text</label>
                 <textarea
-                  placeholder="Synthesize compliance findings for {{supplierName}}..."
+                  placeholder="System prompt instructions with {{variables}}..."
                   value={promptTemplate}
                   onChange={(e) => setPromptTemplate(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono"
-                  rows={3}
+                  className="w-full p-2.5 bg-[--vc-surface] border border-[--vc-border] rounded-[--radius-md] text-[--vc-text-primary] font-mono text-[11px]"
+                  rows={4}
                   required
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl cursor-pointer">
-                  Create Prompt
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Set Quota */}
-      {showQuotaModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h3 className="text-base font-bold text-gray-900">Configure AI Quota Limits</h3>
-              <button onClick={() => setShowQuotaModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSetQuota} className="flex flex-col gap-3 text-xs">
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">Scope Type</label>
-                <select
-                  value={quotaScope}
-                  onChange={(e) => setQuotaScope(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
-                >
-                  <option value="ORGANIZATION">Organization</option>
-                  <option value="USER">User</option>
-                  <option value="MODULE">Module</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">Scope ID / Identifier</label>
-                <input
-                  type="text"
-                  placeholder="ENTERPRISE_ORG_1"
-                  value={quotaScopeId}
-                  onChange={(e) => setQuotaScopeId(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-semibold mb-1">Daily Request Limit</label>
-                <input
-                  type="number"
-                  value={quotaDaily}
-                  onChange={(e) => setQuotaDaily(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="submit" className="px-4 py-2 bg-slate-900 text-white font-semibold rounded-xl cursor-pointer">
-                  Set Quota
+                <button type="submit" className="px-4 py-2 bg-[--vc-brand] hover:bg-[--vc-brand-hover] text-white font-semibold rounded-[--radius-md]">
+                  Save System Prompt
                 </button>
               </div>
             </form>

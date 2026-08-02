@@ -4,8 +4,8 @@
  *
  * Architecture:
  * - Fetches identity + timeline (critical path) first
- * - Supplementary data (share, widget, badge) is fetched independently and degrades gracefully
- * - A single sub-request failure no longer kills the entire workspace
+ * - Auto-generates/fetches Dynamic QR code on load so QR code is immediately available
+ * - Provides direct blob download for PDF verification certificate
  */
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
@@ -28,7 +28,6 @@ export function useTrustDistribution() {
     setError(null);
     try {
       // ── Critical path: identity + config + timeline ──
-      // These three must succeed for the workspace to be usable.
       const [identityRes, configRes, timelineRes] = await Promise.all([
         api.get('/trust-distribution/identity'),
         api.get('/trust-distribution/config'),
@@ -39,8 +38,19 @@ export function useTrustDistribution() {
       setConfig(configRes.data.data);
       setTimeline(timelineRes.data.data || []);
 
+      // ── Dynamic QR Code Generation / Fetch ──
+      try {
+        const qrRes = await api.post('/trust-distribution/qr/generate');
+        const payload = qrRes.data.data;
+        setQrData({
+          ...payload,
+          qr_image_url: payload.qrDataUrl || payload.qr_image_url,
+        });
+      } catch (qrErr) {
+        console.warn('[useTrustDistribution] Dynamic QR auto-fetch notice:', qrErr.message);
+      }
+
       // ── Supplementary path: experience endpoints (graceful degradation) ──
-      // Failures here must NOT prevent the workspace from rendering.
       const [shareRes, widgetRes, badgeRes] = await Promise.allSettled([
         api.get('/trust-distribution/experience/share-link'),
         api.get('/trust-distribution/experience/widget-config'),
@@ -51,7 +61,6 @@ export function useTrustDistribution() {
       if (widgetRes.status === 'fulfilled') setWidgetConfig(widgetRes.value.data.data);
       if (badgeRes.status === 'fulfilled') setBadgeConfig(badgeRes.value.data.data);
     } catch (err) {
-      // Only set error if the critical path failed
       setError(err.response?.data?.error || 'Failed to load Trust Distribution workspace.');
     } finally {
       setLoading(false);
@@ -62,8 +71,11 @@ export function useTrustDistribution() {
     setActionLoading(true);
     try {
       const res = await api.post('/trust-distribution/qr/generate');
-      setQrData(res.data.data);
-      await fetchDistributionData();
+      const payload = res.data.data;
+      setQrData({
+        ...payload,
+        qr_image_url: payload.qrDataUrl || payload.qr_image_url,
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'QR generation failed.');
     } finally {
@@ -75,8 +87,11 @@ export function useTrustDistribution() {
     setActionLoading(true);
     try {
       const res = await api.post('/trust-distribution/qr/regenerate');
-      setQrData(res.data.data);
-      await fetchDistributionData();
+      const payload = res.data.data;
+      setQrData({
+        ...payload,
+        qr_image_url: payload.qrDataUrl || payload.qr_image_url,
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'QR regeneration failed.');
     } finally {
@@ -89,9 +104,32 @@ export function useTrustDistribution() {
     try {
       const res = await api.post('/trust-distribution/assets/generate');
       setAssets(res.data.data.assets);
-      await fetchDistributionData();
     } catch (err) {
       setError(err.response?.data?.error || 'Asset generation failed.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const downloadCertificatePDF = async () => {
+    setActionLoading(true);
+    try {
+      const response = await api.get('/trust-distribution/assets/download/certificate', {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const filename = `VerifyChain_Certificate_${identity?.public_slug || 'MSME'}.pdf`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Certificate download error:', err);
+      setError('Failed to download certificate PDF.');
     } finally {
       setActionLoading(false);
     }
@@ -117,5 +155,6 @@ export function useTrustDistribution() {
     generateQRCode,
     regenerateQRCode,
     generateAssets,
+    downloadCertificatePDF,
   };
 }

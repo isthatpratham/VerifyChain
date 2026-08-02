@@ -5,6 +5,7 @@
  * Integration Connectors, Usage Analytics, Audit Center, Security Center, Observability, and Search.
  */
 import { useState, useEffect } from 'react';
+import { Toast } from '../ui/Toast';
 import {
   Code,
   Key,
@@ -246,7 +247,7 @@ export function DeveloperPlatformPage() {
 
   const handleRegisterApp = async () => {
     if (!newAppName.trim()) {
-      alert('Application name is required.');
+      Toast.error('Application name is required.');
       return;
     }
     try {
@@ -264,12 +265,14 @@ export function DeveloperPlatformPage() {
         setShowCreateAppModal(false);
         setNewAppName('');
         setNewAppDesc('');
+        Toast.success('Developer Application registered successfully.');
         fetchDeveloperPlatformData();
       } else {
-        alert(`Failed to register app: ${json.error || json.message}`);
+        Toast.error(`Failed to register app: ${json.error || json.message}`);
       }
     } catch (err) {
       console.error('Failed to register application:', err);
+      Toast.error('Network error registering application.');
     }
   };
 
@@ -289,12 +292,14 @@ export function DeveloperPlatformPage() {
       if (json.success) {
         setShowEditAppModal(false);
         setEditingApp(null);
+        Toast.success('Developer Application updated.');
         fetchDeveloperPlatformData();
       } else {
-        alert(`Failed to update app: ${json.error || json.message}`);
+        Toast.error(`Failed to update app: ${json.error || json.message}`);
       }
     } catch (err) {
       console.error('Failed to update application:', err);
+      Toast.error('Network error updating application.');
     }
   };
 
@@ -756,18 +761,18 @@ export function DeveloperPlatformPage() {
   return (
     <div className="space-y-8">
       {/* Workspace Header */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-md] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1.5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
+            <div className="w-10 h-10 rounded-[--radius-sm] bg-[--vc-brand] text-white flex items-center justify-center font-bold">
               <Code size={22} />
             </div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Developer Platform</h1>
-            <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-mono text-xs font-bold border border-indigo-100">
+            <h1 className="text-[--text-2xl] font-bold text-[--vc-text-primary] tracking-tight font-[--font-heading]">Developer Platform</h1>
+            <span className="px-2.5 py-0.5 rounded-[--radius-sm] bg-[--vc-brand-subtle] text-[--vc-brand] font-mono text-[11px] font-bold border border-[--vc-brand]/20 uppercase tracking-wider">
               v1.0.0 Enterprise
             </span>
           </div>
-          <p className="text-sm text-gray-500 max-w-2xl">
+          <p className="text-[--text-xs] text-[--vc-text-secondary] max-w-2xl">
             Enterprise Management Workspace for REST APIs, Webhook Subscriptions, Integration Connectors, API Keys, Usage Analytics, and Security.
           </p>
         </div>
@@ -775,20 +780,20 @@ export function DeveloperPlatformPage() {
         {/* Global Search Bar */}
         <div className="relative w-full md:w-80">
           <div className="relative">
-            <MagnifyingGlass size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlass size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[--vc-text-tertiary]" />
             <input
               type="text"
               placeholder="Search keys, webhooks, apps..."
               value={searchQuery}
               onChange={(e) => handleGlobalSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-[--vc-surface] border border-[--vc-border] rounded-[--radius-md] text-[--text-xs] focus:outline-none focus:ring-2 focus:ring-[--vc-brand] transition-all text-[--vc-text-primary]"
             />
           </div>
 
           {/* Search Dropdown Results */}
           {searchResults && searchResults.results.length > 0 && (
-            <div className="absolute top-12 left-0 right-0 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-2 space-y-1 max-h-80 overflow-y-auto">
-              <div className="px-3 py-1.5 text-[10px] font-mono text-gray-400 uppercase font-bold">
+            <div className="absolute top-12 left-0 right-0 bg-[--vc-surface-overlay] border border-[--vc-border] rounded-[--radius-md] shadow-[--shadow-md] z-50 p-2 space-y-1 max-h-80 overflow-y-auto">
+              <div className="px-3 py-1.5 text-[10px] font-mono text-[--vc-text-tertiary] uppercase font-bold">
                 Search Results ({searchResults.totalResults})
               </div>
               {searchResults.results.map((res, idx) => (
@@ -798,13 +803,13 @@ export function DeveloperPlatformPage() {
                     setSearchResults(null);
                     setSearchQuery('');
                   }}
-                  className="p-2.5 rounded-xl hover:bg-indigo-50 cursor-pointer flex flex-col transition-colors"
+                  className="p-2.5 rounded-[--radius-sm] hover:bg-[--vc-bg-subtle] cursor-pointer flex flex-col transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-900">{res.title}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 text-gray-600">{res.type}</span>
+                    <span className="text-[--text-xs] font-bold text-[--vc-text-primary]">{res.title}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-[--radius-sm] bg-[--vc-bg-muted] text-[--vc-text-secondary]">{res.type}</span>
                   </div>
-                  <span className="text-[11px] text-gray-500">{res.subtitle}</span>
+                  <span className="text-[11px] text-[--vc-text-secondary]">{res.subtitle}</span>
                 </div>
               ))}
             </div>
@@ -813,7 +818,7 @@ export function DeveloperPlatformPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto pb-1">
+      <div className="flex items-center gap-2 border-b border-[--vc-border] overflow-x-auto pb-1">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -821,10 +826,10 @@ export function DeveloperPlatformPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-xs whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-[--radius-md] font-medium text-[--text-xs] whitespace-nowrap transition-all ${
                 isActive
-                  ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'bg-[--vc-brand] text-white font-semibold'
+                  : 'text-[--vc-text-secondary] hover:text-[--vc-text-primary] hover:bg-[--vc-bg-subtle]'
               }`}
             >
               <Icon size={16} />
@@ -836,7 +841,7 @@ export function DeveloperPlatformPage() {
 
       {/* Tab Content Container */}
       {loading ? (
-        <div className="bg-white border border-gray-200 rounded-3xl p-12 text-center text-gray-400 animate-pulse">
+        <div className="bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-md] p-12 text-center text-[--vc-text-tertiary] text-[--text-xs]">
           Loading Developer Platform workspace...
         </div>
       ) : (
@@ -846,36 +851,36 @@ export function DeveloperPlatformPage() {
             <div className="space-y-6">
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+                <div className="bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-md] p-5 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-medium text-gray-500 uppercase font-mono">Active API Keys</span>
-                    <div className="text-2xl font-black text-gray-900 mt-1">{dashboardData?.metrics?.activeApiKeys || 2}</div>
+                    <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase font-mono tracking-wider">Active API Keys</span>
+                    <div className="text-[--text-2xl] font-bold text-[--vc-text-primary] font-mono mt-1">{dashboardData?.metrics?.activeApiKeys || 0}</div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Key size={20} /></div>
+                  <div className="w-10 h-10 rounded-[--radius-sm] bg-[--vc-brand-subtle] text-[--vc-brand] flex items-center justify-center border border-[--vc-brand]/20"><Key size={20} /></div>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+                <div className="bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-md] p-5 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-medium text-gray-500 uppercase font-mono">Success Rate (24h)</span>
-                    <div className="text-2xl font-black text-emerald-600 mt-1">{dashboardData?.metrics?.successRate24h || 100}%</div>
+                    <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase font-mono tracking-wider">Success Rate (24h)</span>
+                    <div className="text-[--text-2xl] font-bold text-[--vc-success-text] font-mono mt-1">{dashboardData?.metrics?.successRate24h || 100}%</div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><CheckCircle size={20} /></div>
+                  <div className="w-10 h-10 rounded-[--radius-sm] bg-[--vc-success-bg] text-[--vc-success-text] flex items-center justify-center border border-[--vc-success]/20"><CheckCircle size={20} /></div>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+                <div className="bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-md] p-5 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-medium text-gray-500 uppercase font-mono">Avg Latency</span>
-                    <div className="text-2xl font-black text-indigo-600 mt-1">{dashboardData?.metrics?.avgLatencyMs24h || 14} ms</div>
+                    <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase font-mono tracking-wider">Avg Latency</span>
+                    <div className="text-[--text-2xl] font-bold text-[--vc-brand] font-mono mt-1">{dashboardData?.metrics?.avgLatencyMs24h || 14} ms</div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><Pulse size={20} /></div>
+                  <div className="w-10 h-10 rounded-[--radius-sm] bg-[--vc-brand-subtle] text-[--vc-brand] flex items-center justify-center border border-[--vc-brand]/20"><Pulse size={20} /></div>
                 </div>
 
-                <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+                <div className="bg-[--vc-surface-raised] border border-[--vc-border] rounded-[--radius-md] p-5 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-medium text-gray-500 uppercase font-mono">Connections Health</span>
-                    <div className="text-2xl font-black text-purple-600 mt-1">{dashboardData?.metrics?.healthyConnections || 3} Healthy</div>
+                    <span className="text-[10px] font-bold text-[--vc-text-tertiary] uppercase font-mono tracking-wider">Connections Health</span>
+                    <div className="text-[--text-2xl] font-bold text-[--vc-text-primary] font-mono mt-1">{dashboardData?.metrics?.healthyConnections || 0} Healthy</div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center"><Plugs size={20} /></div>
+                  <div className="w-10 h-10 rounded-[--radius-sm] bg-[--vc-bg-base] text-[--vc-text-secondary] flex items-center justify-center border border-[--vc-border]"><Plugs size={20} /></div>
                 </div>
               </div>
 
