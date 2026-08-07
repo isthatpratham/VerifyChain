@@ -2,7 +2,7 @@
 
 VerifyChain is a compliance intelligence platform for Indian Micro-MSMEs that aggregates compliance status, calculates a Compliance Health Score, generates public shareable Supplier Cards with QR verification, alerts MSMEs before compliance expirations, and matches MSME profiles to eligible government schemes.
 
-## Technology Stack
+## Technology Stack:
 
 - **Frontend:** React 18, Vite, Tailwind CSS, React Router 6, Axios
 - **Backend:** Node.js, Express.js, Helmet, CORS, Morgan
