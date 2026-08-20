@@ -1,5 +1,5 @@
 <h1 align=center> VerifyChain </h1>
-<h3 align=center> Micro-MSME Compliance Intelligence & Supplier Verification Platform </h2>
+<h3 align=center> Micro-MSME Compliance Intelligence & Supplier Verification Platform </h3>
 
 
 <br>VerifyChain is a compliance intelligence platform for Indian Micro-MSMEs that aggregates compliance status, calculates a Compliance Health Score, generates public shareable Supplier Cards with QR verification, alerts MSMEs before compliance expirations, and matches MSME profiles to eligible government schemes.
