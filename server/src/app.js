@@ -13,6 +13,12 @@ const trustDistributionRoutes = require('./routes/trustDistribution.routes');
 const errorHandler = require('./middleware/errorHandler');
 const trustLifecycleBackfillService = require('./services/trustLifecycleBackfill.service');
 
+const { validateEnv } = require('./utils/envValidator');
+const prisma = require('./utils/prismaClient');
+
+// Run startup environment validation
+validateEnv();
+
 const app = express();
 
 app.use(helmet());
@@ -20,12 +26,49 @@ app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000' }));
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Public Health Check Endpoint
-app.get('/api/health', (req, res) => {
+// Track startup backfill state
+let backfillState = { status: 'INITIALIZING', completedAt: null, error: null };
+
+// Public Liveness Probe Endpoint (fast process heartbeat)
+app.get(['/api/health', '/api/health/live'], (req, res) => {
   res.json({
     success: true,
-    message: 'VerifyChain API is running',
+    status: 'UP',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
   });
+});
+
+// Public Readiness Probe Endpoint (verifies active database connection and subsystem readiness)
+app.get('/api/health/ready', async (req, res) => {
+  try {
+    // Actively probe database connectivity
+    await prisma.$queryRaw`SELECT 1`;
+
+    const isReady = backfillState.status !== 'FAILED';
+    const statusCode = isReady ? 200 : 503;
+
+    return res.status(statusCode).json({
+      success: isReady,
+      status: isReady ? 'READY' : 'DEGRADED',
+      checks: {
+        database: 'CONNECTED',
+        startupBackfill: backfillState.status,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (dbError) {
+    return res.status(503).json({
+      success: false,
+      status: 'NOT_READY',
+      checks: {
+        database: 'DISCONNECTED',
+        startupBackfill: backfillState.status,
+      },
+      error: 'Database connection check failed',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Auth Routes (Public: POST /register, POST /login; Protected: GET /me)
@@ -56,9 +99,19 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Trigger Idempotent Enterprise Trust Lifecycle Startup Backfill
-trustLifecycleBackfillService.runBackfill().catch((err) => {
-  console.error('[App] Startup trust lifecycle backfill notice:', err.message);
-});
+trustLifecycleBackfillService
+  .runBackfill()
+  .then((result) => {
+    if (result && result.success) {
+      backfillState = { status: 'READY', completedAt: new Date().toISOString(), error: null };
+    } else {
+      backfillState = { status: 'DEGRADED', completedAt: new Date().toISOString(), error: result?.error || null };
+    }
+  })
+  .catch((err) => {
+    console.error('[App] Startup trust lifecycle backfill notice:', err.message);
+    backfillState = { status: 'FAILED', completedAt: new Date().toISOString(), error: err.message };
+  });
 
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
