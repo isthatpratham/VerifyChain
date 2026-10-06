@@ -16,8 +16,6 @@
    - Dynamic dashboard score integration replacing static indicators.
 3. **Statutory Verification Engine:**
    - Multi-authority validation for GSTIN, PAN, and Udyam registrations with structured entity classification.
-4. **Provider-Agnostic External AI (Google Gemini):**
-   - Optional advisory compliance intelligence enrichment with context sanitization and automatic deterministic fallback.
 
 ---
 
@@ -33,7 +31,7 @@
 
 ## 3. TESTING & QUALITY VALIDATION
 
-- **Automated Test Suite:** 29/29 tests passing across security, business logic, trust distribution, and AI integration.
+- **Automated Test Suite:** 27/27 tests passing across security, business logic, and trust distribution platforms.
 - **Linting & Code Integrity:** 0 errors and 0 warnings across frontend and backend.
 - **Production Bundle:** Minified, fully compiled client build.
 - **Prisma Schema:** Validated with composite indexes covering high-volume queries.
@@ -44,4 +42,4 @@
 
 - **Runtime:** Node.js 18+ (tested on Node.js 20+), PostgreSQL 14+.
 - **Required Environment Variables:** `DATABASE_URL`, `JWT_SECRET` (32+ characters).
-- **Optional Services:** Google Gemini API Key (`GEMINI_API_KEY`).
+
