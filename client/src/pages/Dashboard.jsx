@@ -8,6 +8,7 @@
 import { useAuth } from '../hooks/useAuth';
 import { useMsmeProfile } from '../hooks/useMsmeProfile';
 import { useBusinessVerification } from '../hooks/useBusinessVerification';
+import { useHealthIntelligence } from '../hooks/useHealthIntelligence';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { BusinessSummaryCard } from '../components/dashboard/BusinessSummaryCard';
 import { BusinessVerificationCard } from '../components/profile/BusinessVerificationCard';
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { profile, loading: profileLoading, error: profileError, refreshProfile } = useMsmeProfile();
   const { statusData } = useBusinessVerification();
+  const { currentScore, insights } = useHealthIntelligence();
 
   if (profileLoading) {
     return (
@@ -35,6 +37,12 @@ export default function Dashboard() {
       </Container>
     );
   }
+
+  // Derive live score and risk level from Health Intelligence subsystem
+  const liveScore = currentScore?.overallScore ?? insights?.overallScore ?? profile?.trust_score_snapshot ?? 85;
+  const liveRisk = insights?.riskAnalysis?.overallRiskLevel
+    ? (insights.riskAnalysis.overallRiskLevel === 'LOW' ? 'HIGH' : insights.riskAnalysis.overallRiskLevel === 'HIGH' ? 'LOW' : 'MEDIUM')
+    : (liveScore >= 75 ? 'HIGH' : liveScore >= 40 ? 'MEDIUM' : 'LOW');
 
   return (
     <Container size="xl" className="py-8">
@@ -58,7 +66,7 @@ export default function Dashboard() {
       <QuickActionsPanel publicSlug={profile?.publicSlug} />
 
       {/* Compliance Health Score Engine Presentation */}
-      <ScoreRingDisplay score={88} level="HIGH" />
+      <ScoreRingDisplay score={liveScore} level={liveRisk} />
 
       {/* Business Details Overview */}
       <BusinessSummaryCard

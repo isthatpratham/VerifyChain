@@ -57,17 +57,22 @@ class TrustLifecycleBackfillService {
       const durationMs = Date.now() - startTime;
       console.log(
         `[TrustLifecycleBackfill] Completed backfill in ${durationMs}ms: ` +
-        `${msmeProfiles.length} checked, ${createdCount} processed, ${errorCount} error(s).`
+        `${msmeProfiles.length} checked, ${createdCount} processed, ${updatedCount} updated, ${errorCount} error(s).`
       );
 
       domainEventBus.publish('TrustLifecycleBackfillCompleted', {
         totalProfiles: msmeProfiles.length,
+        createdCount,
+        updatedCount,
+        errorCount,
         durationMs,
       });
 
       return {
         success: true,
         totalProfiles: msmeProfiles.length,
+        createdCount,
+        updatedCount,
         errorCount,
         durationMs,
       };
