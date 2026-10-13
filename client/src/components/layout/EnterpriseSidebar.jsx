@@ -5,6 +5,7 @@
  */
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { NavigationLogo } from '../../navigation/components/NavigationLogo';
 import {
   SquaresFour,
   Buildings,
@@ -17,6 +18,7 @@ import {
   CheckCircle,
   Article,
   User,
+  Code,
 } from '@phosphor-icons/react';
 
 const NAV_SECTIONS = [
@@ -43,6 +45,12 @@ const NAV_SECTIONS = [
     items: [
       { to: '/supplier-trust', label: 'Supplier Trust', icon: ShieldCheck },
       { to: '/trust-distribution', label: 'Trust Distribution', icon: Broadcast },
+    ],
+  },
+  {
+    group: 'DEVELOPER',
+    items: [
+      { to: '/developer', label: 'Developer Options', icon: Code },
     ],
   },
 ];
@@ -81,31 +89,32 @@ export function EnterpriseSidebar({ collapsed, setCollapsed, mobileOpen, setMobi
       >
         <div>
           {/* Logo Header */}
-          <div className="h-16 flex items-center justify-between px-5 border-b border-gray-100">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-base shrink-0 shadow-sm">
-                V
-              </div>
-              {!collapsed && (
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-gray-900 tracking-tight">VerifyChain</span>
-                  <span className="text-[10px] font-mono text-gray-500 font-medium">Enterprise Shell</span>
-                </div>
-              )}
-            </div>
+          <div className={`h-16 flex items-center justify-between border-b border-gray-100 ${collapsed ? 'px-2' : 'px-5'}`}>
+            <NavigationLogo
+              to="/dashboard"
+              mode={collapsed ? 'mark' : 'full'}
+              size={collapsed ? 'sm' : 'md'}
+              subtitle={collapsed ? undefined : 'Enterprise Shell'}
+              className="overflow-hidden"
+              alt="VerifyChain Dashboard"
+            />
 
             {/* Mobile close / Desktop collapse button */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setMobileOpen(false)}
                 className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                aria-label="Close menu"
               >
                 <X size={18} />
               </button>
               <button
                 onClick={() => setCollapsed(!collapsed)}
-                className="hidden md:flex p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
+                className={`hidden md:flex rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-500 hover:text-gray-900 transition-colors ${
+                  collapsed ? 'p-1' : 'p-1.5'
+                }`}
                 title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 {collapsed ? <CaretRight size={14} /> : <CaretLeft size={14} />}
               </button>

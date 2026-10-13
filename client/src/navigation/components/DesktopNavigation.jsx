@@ -25,6 +25,7 @@ const AUTH_NAV = [
   { to: '/profile',   label: 'Business Profile' },
   { to: '/supplier-trust', label: 'Supplier Trust' },
   { to: '/trust-distribution', label: 'Trust Distribution' },
+  { to: '/developer', label: 'Developer Options' },
 ];
 
 /**

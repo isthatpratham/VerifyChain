@@ -23,6 +23,8 @@ const SEGMENT_LABELS = {
   pricing:      'Pricing',
   about:        'About',
   contact:      'Contact',
+  developer:    'Developer Options',
+  'developer-options': 'Developer Options',
 };
 
 /**
