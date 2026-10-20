@@ -5,7 +5,6 @@
  */
 import { useState, useCallback, useEffect } from 'react';
 import api from '../services/api';
-import axios from 'axios';
 
 export function usePublicTrust(slug) {
   const [profile, setProfile] = useState(null);
@@ -19,15 +18,7 @@ export function usePublicTrust(slug) {
     setLoading(true);
     setError(null);
     try {
-      let res;
-      try {
-        res = await api.get(`/supplier-trust/public/${slug}`);
-      } catch (primaryErr) {
-        if (primaryErr.response && primaryErr.response.status === 404) {
-          throw primaryErr;
-        }
-        res = await axios.get(`http://localhost:5000/api/supplier-trust/public/${slug}`);
-      }
+      const res = await api.get(`/supplier-trust/public/${slug}`);
 
       if (res.data && res.data.data) {
         setProfile(res.data.data);

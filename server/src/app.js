@@ -11,7 +11,6 @@ const complianceRoutes = require('./routes/compliance.routes');
 const supplierTrustRoutes = require('./routes/supplierTrust.routes');
 const trustDistributionRoutes = require('./routes/trustDistribution.routes');
 const errorHandler = require('./middleware/errorHandler');
-const trustLifecycleBackfillService = require('./services/trustLifecycleBackfill.service');
 
 const { validateEnv } = require('./utils/envValidator');
 const prisma = require('./utils/prismaClient');
@@ -21,13 +20,39 @@ validateEnv();
 
 const app = express();
 
+const getClientUrl = () => {
+  if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, or same-origin serverless)
+    if (!origin) return callback(null, true);
+
+    const clientUrl = getClientUrl();
+    if (origin === clientUrl) return callback(null, true);
+
+    // Allow localhost in non-production or preview deployments
+    if (
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      /\.vercel\.app$/.test(new URL(origin).hostname)
+    ) {
+      return callback(null, true);
+    }
+
+    // Allow public verification embeds/widgets
+    return callback(null, true);
+  },
+  credentials: true,
+};
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000' }));
+app.use(cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json());
-
-// Track startup backfill state
-let backfillState = { status: 'INITIALIZING', completedAt: null, error: null };
 
 // Public Liveness Probe Endpoint (fast process heartbeat)
 app.get(['/api/health', '/api/health/live'], (req, res) => {
@@ -45,15 +70,12 @@ app.get('/api/health/ready', async (req, res) => {
     // Actively probe database connectivity
     await prisma.$queryRaw`SELECT 1`;
 
-    const isReady = backfillState.status !== 'FAILED';
-    const statusCode = isReady ? 200 : 503;
-
-    return res.status(statusCode).json({
-      success: isReady,
-      status: isReady ? 'READY' : 'DEGRADED',
+    return res.status(200).json({
+      success: true,
+      status: 'READY',
       checks: {
         database: 'CONNECTED',
-        startupBackfill: backfillState.status,
+        runtime: 'READY',
       },
       timestamp: new Date().toISOString(),
     });
@@ -63,7 +85,7 @@ app.get('/api/health/ready', async (req, res) => {
       status: 'NOT_READY',
       checks: {
         database: 'DISCONNECTED',
-        startupBackfill: backfillState.status,
+        runtime: 'DEGRADED',
       },
       error: 'Database connection check failed',
       timestamp: new Date().toISOString(),
@@ -97,21 +119,6 @@ app.use((req, res) => {
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);
-
-// Trigger Idempotent Enterprise Trust Lifecycle Startup Backfill
-trustLifecycleBackfillService
-  .runBackfill()
-  .then((result) => {
-    if (result && result.success) {
-      backfillState = { status: 'READY', completedAt: new Date().toISOString(), error: null };
-    } else {
-      backfillState = { status: 'DEGRADED', completedAt: new Date().toISOString(), error: result?.error || null };
-    }
-  })
-  .catch((err) => {
-    console.error('[App] Startup trust lifecycle backfill notice:', err.message);
-    backfillState = { status: 'FAILED', completedAt: new Date().toISOString(), error: err.message };
-  });
 
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;

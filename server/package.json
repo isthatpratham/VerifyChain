@@ -10,7 +10,10 @@
     "format": "prettier --write \"src/**/*.js\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.js",
+    "backfill": "node scripts/runBackfill.js",
+    "test": "node --test test/businessLogicAndEngines.test.js test/securityAndHardening.test.js test/trustDistributionPlatform.test.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -29,12 +32,12 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.15",
     "pdfkit": "^0.15.0",
+    "prisma": "^5.20.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "eslint": "^8.57.1",
     "nodemon": "^3.1.7",
-    "prettier": "^3.3.3",
-    "prisma": "^5.20.0"
+    "prettier": "^3.3.3"
   }
 }

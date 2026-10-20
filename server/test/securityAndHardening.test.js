@@ -34,6 +34,29 @@ describe('Phase 13 Security & Backend Hardening Verification Suite', () => {
       }
     });
 
+    test('validateEnv should throw in production when JWT_SECRET is shorter than 32 characters', () => {
+      const originalJwtSecret = process.env.JWT_SECRET;
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalDbUrl = process.env.DATABASE_URL;
+      try {
+        process.env.NODE_ENV = 'production';
+        process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
+        process.env.JWT_SECRET = 'short_secret_under_32';
+        assert.throws(
+          () => {
+            validateEnv();
+          },
+          {
+            name: 'Error',
+            message: /JWT_SECRET.*32 characters/,
+          }
+        );
+      } finally {
+        process.env.JWT_SECRET = originalJwtSecret;
+        process.env.NODE_ENV = originalNodeEnv;
+        process.env.DATABASE_URL = originalDbUrl;
+      }
+    });
   });
 
   describe('Authentication Cryptography & Token Tampering (13.3.1)', () => {

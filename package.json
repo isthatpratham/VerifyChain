@@ -1,0 +1,24 @@
+{
+  "name": "verifychain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VerifyChain Enterprise Trust & Verification Platform",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run --prefix server prisma:generate && npm run --prefix client build",
+    "vercel-build": "npm run --prefix server prisma:generate && npm run --prefix client build",
+    "postinstall": "npm run --prefix server prisma:generate",
+    "prisma:generate": "npm run --prefix server prisma:generate",
+    "prisma:migrate": "npm run --prefix server prisma:migrate",
+    "prisma:deploy": "npm run --prefix server prisma:deploy",
+    "prisma:seed": "npm run --prefix server prisma:seed",
+    "backfill": "node server/scripts/runBackfill.js",
+    "test": "node --test server/test/businessLogicAndEngines.test.js server/test/securityAndHardening.test.js server/test/trustDistributionPlatform.test.js",
+    "lint": "npm run --prefix server lint && npm run --prefix client lint",
+    "dev:server": "npm run --prefix server dev",
+    "dev:client": "npm run --prefix client dev"
+  }
+}

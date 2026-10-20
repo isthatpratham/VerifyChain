@@ -123,6 +123,31 @@ const getAutomationMetrics = asyncHandler((req, res) => {
   });
 });
 
+const triggerBackfill = asyncHandler(async (req, res) => {
+  const trustLifecycleBackfillService = require('../services/trustLifecycleBackfill.service');
+  const result = await trustLifecycleBackfillService.runBackfill();
+
+  if (result.inProgress) {
+    return res.status(409).json({
+      success: false,
+      error: result.error,
+    });
+  }
+
+  if (!result.success) {
+    return res.status(500).json({
+      success: false,
+      error: result.error,
+    });
+  }
+
+  res.json({
+    success: true,
+    message: 'Enterprise Trust Lifecycle backfill executed successfully.',
+    data: result,
+  });
+});
+
 module.exports = {
   evaluateTrust,
   getVerificationDecision,
@@ -135,4 +160,5 @@ module.exports = {
   triggerAutomationReevaluate,
   getAutomationDependencyGraph,
   getAutomationMetrics,
+  triggerBackfill,
 };

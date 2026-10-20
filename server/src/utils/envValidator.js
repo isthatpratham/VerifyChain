@@ -21,8 +21,12 @@ function validateEnv() {
     } else {
       warnings.push('JWT_SECRET is unset; using local development default. Set a 32+ char secret in production.');
     }
-  } else if (process.env.JWT_SECRET.length < 32 && process.env.NODE_ENV === 'production') {
-    warnings.push('JWT_SECRET is shorter than 32 characters in production mode.');
+  } else if (process.env.JWT_SECRET.length < 32) {
+    if (process.env.NODE_ENV === 'production') {
+      missing.push('JWT_SECRET (must be at least 32 characters in production)');
+    } else {
+      warnings.push('JWT_SECRET is shorter than 32 characters; set a 32+ char secret in production.');
+    }
   }
 
   if (warnings.length > 0) {
