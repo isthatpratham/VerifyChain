@@ -122,26 +122,27 @@ export function TrustDistributionPage() {
 
   const publicUrl = getVerificationUrl(identity.public_slug);
   const fallbackIframe = getWidgetIframeSnippet(identity.public_slug);
+  const fallbackBadgeHtml = `<a href="${publicUrl}">Verified Supplier</a>`;
   const defaultSocial = getSocialShareUrls(identity.public_slug);
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full min-w-0">
       {/* ── Header ── */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
+      <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 min-w-0 w-full">
+        <div className="flex items-start gap-4 min-w-0">
+          <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 shrink-0">
             <Broadcast size={40} />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 Trust Distribution Hub
               </h1>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                 {identity.status}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
+            <p className="text-xs text-slate-500 mt-1 font-mono break-all sm:break-normal">
               Stable ID:{' '}
               <span className="text-slate-700">{identity.stable_distribution_id}</span>
               {' '}·{' '}
@@ -150,11 +151,11 @@ export function TrustDistributionPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap shrink-0">
           <button
             onClick={generateAssets}
             disabled={actionLoading}
-            className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm"
+            className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm cursor-pointer"
           >
             <ArrowsClockwise size={16} className={actionLoading ? 'animate-spin' : ''} />
             {actionLoading ? 'Generating…' : 'Refresh All Assets'}
@@ -172,7 +173,7 @@ export function TrustDistributionPage() {
       </div>
 
       {/* ── Dynamic QR Experience Section ── */}
-      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-center">
+      <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 md:items-start items-center min-w-0 w-full">
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shrink-0 flex flex-col items-center gap-2">
           {qrData?.qrDataUrl ? (
             <img src={qrData.qrDataUrl} alt="Dynamic QR Verification Code" className="w-40 h-40 rounded-lg" />
@@ -185,9 +186,9 @@ export function TrustDistributionPage() {
           <span className="text-[10px] font-mono text-slate-400">HMAC-SHA256 Signed Token</span>
         </div>
 
-        <div className="flex-1 flex flex-col gap-3">
+        <div className="flex-1 min-w-0 max-w-full w-full flex flex-col gap-3">
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <QrCode size={20} className="text-blue-600" />
+            <QrCode size={20} className="text-blue-600 shrink-0" />
             Dynamic Verification QR Code
           </h3>
           <p className="text-sm text-slate-500 leading-relaxed">
@@ -195,11 +196,22 @@ export function TrustDistributionPage() {
             delivery notes, and corporate brochures.
           </p>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 break-all flex items-center justify-between gap-3">
-            <span className="truncate">{qrData?.targetUrl || publicUrl}</span>
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 min-w-0 max-w-full w-full flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0 max-w-full">
+              <span
+                className="text-xs font-mono text-slate-700 block select-all"
+                style={{
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'normal',
+                }}
+              >
+                {qrData?.targetUrl || publicUrl}
+              </span>
+            </div>
             <button
               onClick={() => handleCopy(qrData?.targetUrl || publicUrl, 'qrUrl')}
-              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-500 border border-slate-200 transition-colors"
+              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-500 border border-slate-200 transition-colors shrink-0 cursor-pointer"
               title="Copy URL"
             >
               {copiedKey === 'qrUrl' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
@@ -211,7 +223,7 @@ export function TrustDistributionPage() {
               <button
                 onClick={generateQRCode}
                 disabled={actionLoading}
-                className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-sm"
+                className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-sm cursor-pointer"
               >
                 <QrCode size={14} /> Generate Dynamic QR
               </button>
@@ -219,7 +231,7 @@ export function TrustDistributionPage() {
               <button
                 onClick={regenerateQRCode}
                 disabled={actionLoading}
-                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ArrowsClockwise size={14} /> Regenerate Token
               </button>
@@ -239,16 +251,16 @@ export function TrustDistributionPage() {
       </div>
 
       {/* ── Downloadable Trust Assets Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
         {/* Printable PDF Certificate Card */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4 min-w-0 w-full">
           <div>
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
               <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
                 <FilePdf size={17} />
                 Printable Certificate
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
                 PDF Document
               </span>
             </div>
@@ -269,14 +281,14 @@ export function TrustDistributionPage() {
         </div>
 
         {/* Website Verification Widget Card */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4 min-w-0 w-full">
           <div>
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
               <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
                 <Code size={17} />
                 Embeddable Widget
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
                 Responsive iFrame
               </span>
             </div>
@@ -285,16 +297,23 @@ export function TrustDistributionPage() {
               Embed live compliance verification standing directly onto your corporate website footer or contact page.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              readOnly
-              value={widgetConfig?.iframeCode || fallbackIframe}
-              className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-600 truncate"
-            />
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 min-w-0 max-w-full w-full flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0 max-w-full">
+              <code
+                className="text-xs font-mono text-slate-600 block select-all"
+                style={{
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'normal',
+                }}
+              >
+                {widgetConfig?.iframeCode || fallbackIframe}
+              </code>
+            </div>
             <button
               onClick={() => handleCopy(widgetConfig?.iframeCode || fallbackIframe, 'widgetCode')}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1 transition-colors"
+              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-500 border border-slate-200 transition-colors shrink-0 cursor-pointer"
+              title="Copy iFrame Snippet"
             >
               {copiedKey === 'widgetCode' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
             </button>
@@ -303,22 +322,41 @@ export function TrustDistributionPage() {
       </div>
 
       {/* ── Embeddable Trust Badge & Social Share Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0 w-full">
         {/* Trust Badge Snippet */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-            <Code size={17} /> Embeddable Trust Badge
-          </span>
-          <p className="text-sm text-slate-500">
-            Lightweight SVG &amp; HTML badge code linking directly to your verified standing.
-          </p>
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
-            <span className="text-xs font-mono text-slate-600 truncate">
-              {badgeConfig?.htmlCode || `<a href="${publicUrl}">Verified Supplier</a>`}
-            </span>
+        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4 min-w-0 w-full">
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+                <Code size={17} />
+                Embeddable Trust Badge
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
+                HTML &amp; SVG
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Embeddable Trust Badge</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Lightweight SVG &amp; HTML badge code linking directly to your verified standing.
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 min-w-0 max-w-full w-full flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0 max-w-full">
+              <code
+                className="text-xs font-mono text-slate-600 block select-all"
+                style={{
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'normal',
+                }}
+              >
+                {badgeConfig?.htmlCode || fallbackBadgeHtml}
+              </code>
+            </div>
             <button
-              onClick={() => handleCopy(badgeConfig?.htmlCode || '', 'badgeCode')}
-              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors"
+              onClick={() => handleCopy(badgeConfig?.htmlCode || fallbackBadgeHtml, 'badgeCode')}
+              className="p-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 transition-colors shrink-0 cursor-pointer"
+              title="Copy Badge Code"
             >
               {copiedKey === 'badgeCode' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
             </button>
@@ -326,13 +364,22 @@ export function TrustDistributionPage() {
         </div>
 
         {/* Social Share Links */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
-            <ShareNetwork size={17} /> Social Share Links
-          </span>
-          <p className="text-sm text-slate-500">
-            Share your verified profile across professional channels with pre-configured OpenGraph metadata.
-          </p>
+        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between gap-4 min-w-0 w-full">
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+                <ShareNetwork size={17} />
+                Social Share Links
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
+                Verified Profile
+              </span>
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Social Share Channels</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Share your verified profile across professional channels with pre-configured OpenGraph metadata.
+            </p>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             {shareConfig?.socialShare?.whatsapp ? (
               <a
