@@ -20,36 +20,19 @@ validateEnv();
 
 const app = express();
 
-const getClientUrl = () => {
-  if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-};
+const { isAllowedOrigin } = require('./utils/urlResolver');
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, or same-origin serverless)
-    if (!origin) return callback(null, true);
-
-    const clientUrl = getClientUrl();
-    if (origin === clientUrl) return callback(null, true);
-
-    // Allow localhost in non-production or preview deployments
-    if (
-      origin.startsWith('http://localhost:') ||
-      origin.startsWith('http://127.0.0.1:') ||
-      /\.vercel\.app$/.test(new URL(origin).hostname)
-    ) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
-
-    // Allow public verification embeds/widgets
-    return callback(null, true);
+    return callback(new Error(`CORS origin not allowed: ${origin}`));
   },
   credentials: true,
 };
 
-app.use(helmet());
+app.use(helmet({ frameguard: false }));
 app.use(cors(corsOptions));
 app.use(morgan('dev'));
 app.use(express.json());

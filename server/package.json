@@ -13,7 +13,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js",
     "backfill": "node scripts/runBackfill.js",
-    "test": "node --test test/businessLogicAndEngines.test.js test/securityAndHardening.test.js test/trustDistributionPlatform.test.js"
+    "test": "node --test test/businessLogicAndEngines.test.js test/securityAndHardening.test.js test/trustDistributionPlatform.test.js test/canonicalUrlAndCertificate.test.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

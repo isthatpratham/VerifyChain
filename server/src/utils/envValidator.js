@@ -29,6 +29,19 @@ function validateEnv() {
     }
   }
 
+  // Production Canonical Public Frontend URL check
+  if (process.env.NODE_ENV === 'production') {
+    const hasCanonicalOrigin = Boolean(
+      process.env.CLIENT_URL ||
+      process.env.APP_URL ||
+      process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+      process.env.VERCEL_URL
+    );
+    if (!hasCanonicalOrigin) {
+      missing.push('CLIENT_URL (canonical production frontend origin)');
+    }
+  }
+
   if (warnings.length > 0) {
     warnings.forEach((warn) => console.warn(`[Config Warning] ${warn}`));
   }

@@ -16,7 +16,7 @@
     "prisma:deploy": "npm run --prefix server prisma:deploy",
     "prisma:seed": "npm run --prefix server prisma:seed",
     "backfill": "node server/scripts/runBackfill.js",
-    "test": "node --test server/test/businessLogicAndEngines.test.js server/test/securityAndHardening.test.js server/test/trustDistributionPlatform.test.js",
+    "test": "node --test server/test/businessLogicAndEngines.test.js server/test/securityAndHardening.test.js server/test/trustDistributionPlatform.test.js server/test/canonicalUrlAndCertificate.test.js",
     "lint": "npm run --prefix server lint && npm run --prefix client lint",
     "dev:server": "npm run --prefix server dev",
     "dev:client": "npm run --prefix client dev"

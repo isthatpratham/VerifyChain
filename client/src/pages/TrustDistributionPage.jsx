@@ -5,6 +5,12 @@
  */
 import { useState } from 'react';
 import { useTrustDistribution } from '../hooks/useTrustDistribution';
+import api from '../services/api';
+import {
+  getVerificationUrl,
+  getWidgetIframeSnippet,
+  getSocialShareUrls,
+} from '../utils/urlResolver';
 import {
   QrCode,
   DownloadSimple,
@@ -35,11 +41,37 @@ export function TrustDistributionPage() {
   } = useTrustDistribution();
 
   const [copiedKey, setCopiedKey] = useState(null);
+  const [downloadingCert, setDownloadingCert] = useState(false);
 
   const handleCopy = (text, key) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleDownloadCertificate = async () => {
+    setDownloadingCert(true);
+    try {
+      const response = await api.get('/trust-distribution/assets/download/certificate', {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const fileSlug = identity?.public_slug || 'Verified';
+      link.setAttribute('download', `VerifyChain_Certificate_${fileSlug}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('Failed to download certificate PDF:', err);
+      alert('Unable to generate or download certificate. Please verify your profile is active and try again.');
+    } finally {
+      setDownloadingCert(false);
+    }
   };
 
   // ── Loading state ──
@@ -88,8 +120,9 @@ export function TrustDistributionPage() {
     );
   }
 
-  const clientUrl = window.location.origin;
-  const publicUrl = `${clientUrl}/verify/${identity.public_slug}`;
+  const publicUrl = getVerificationUrl(identity.public_slug);
+  const fallbackIframe = getWidgetIframeSnippet(identity.public_slug);
+  const defaultSocial = getSocialShareUrls(identity.public_slug);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -225,13 +258,14 @@ export function TrustDistributionPage() {
               identifier.
             </p>
           </div>
-          <a
-            href="/api/trust-distribution/assets/download/certificate"
-            download
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm"
+          <button
+            onClick={handleDownloadCertificate}
+            disabled={downloadingCert}
+            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-60 cursor-pointer"
           >
-            <DownloadSimple size={16} /> Download High-Res PDF Certificate
-          </a>
+            <DownloadSimple size={16} className={downloadingCert ? 'animate-bounce' : ''} />
+            {downloadingCert ? 'Generating High-Res PDF…' : 'Download High-Res PDF Certificate'}
+          </button>
         </div>
 
         {/* Website Verification Widget Card */}
@@ -255,11 +289,11 @@ export function TrustDistributionPage() {
             <input
               type="text"
               readOnly
-              value={widgetConfig?.iframeCode || `<iframe src="${clientUrl}/embed/widget/${identity.public_slug}"></iframe>`}
+              value={widgetConfig?.iframeCode || fallbackIframe}
               className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-600 truncate"
             />
             <button
-              onClick={() => handleCopy(widgetConfig?.iframeCode || '', 'widgetCode')}
+              onClick={() => handleCopy(widgetConfig?.iframeCode || fallbackIframe, 'widgetCode')}
               className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1 transition-colors"
             >
               {copiedKey === 'widgetCode' ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
@@ -311,7 +345,7 @@ export function TrustDistributionPage() {
               </a>
             ) : (
               <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Verify my business on VerifyChain: ${publicUrl}`)}`}
+                href={defaultSocial.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-colors"
@@ -330,7 +364,7 @@ export function TrustDistributionPage() {
               </a>
             ) : (
               <a
-                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`}
+                href={defaultSocial.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold transition-colors"
@@ -349,7 +383,7 @@ export function TrustDistributionPage() {
               </a>
             ) : (
               <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent('Verified Supplier Profile on VerifyChain')}`}
+                href={defaultSocial.twitter}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold transition-colors"

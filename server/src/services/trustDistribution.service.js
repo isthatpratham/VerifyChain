@@ -5,6 +5,7 @@ const supplierTrustService = require('./supplierTrust.service');
 const domainEventBus = require('../events/DomainEventBus');
 const { distributionTokenEngine, qrCodeGeneratorEngine, verificationResolver } = require('../qrEngine');
 const { trustAssetGenerator } = require('../assetEngine');
+const urlResolver = require('../utils/urlResolver');
 
 class TrustDistributionService {
   /**
@@ -12,8 +13,7 @@ class TrustDistributionService {
    */
   async getShareLinkConfig(msmeId) {
     const profile = await supplierTrustService.getTrustProfileByMsmeId(msmeId);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    const canonicalUrl = `${clientUrl}/verify/${profile.public_slug}`;
+    const canonicalUrl = urlResolver.resolveVerificationUrl(profile.public_slug);
 
     domainEventBus.publish('ShareLinkCreated', {
       msmeId,
@@ -39,10 +39,8 @@ class TrustDistributionService {
    */
   async getWidgetEmbedConfig(msmeId) {
     const profile = await supplierTrustService.getTrustProfileByMsmeId(msmeId);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-    const widgetUrl = `${clientUrl}/embed/widget/${profile.public_slug}`;
-
-    const iframeCode = `<iframe src="${widgetUrl}" width="380" height="240" frameborder="0" scrolling="no" style="border: 0; border-radius: 12px; overflow: hidden;" title="${profile.display_name} VerifyChain Trust Widget"></iframe>`;
+    const widgetUrl = urlResolver.resolveWidgetUrl(profile.public_slug);
+    const iframeCode = urlResolver.resolveWidgetIframeCode(profile.public_slug, profile.display_name);
 
     domainEventBus.publish('WidgetEmbedded', {
       msmeId,
@@ -79,7 +77,6 @@ class TrustDistributionService {
    */
   async resolveDeepLink(slug, section = 'overview') {
     const profile = await supplierTrustService.getTrustProfileBySlug(slug);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
     domainEventBus.publish('DeepLinkResolved', {
       slug,
@@ -89,7 +86,7 @@ class TrustDistributionService {
     return {
       slug,
       section,
-      deepLinkUrl: `${clientUrl}/verify/${slug}#${section}`,
+      deepLinkUrl: urlResolver.resolveDeepLinkUrl(slug, section),
       profile,
     };
   }
@@ -146,7 +143,6 @@ class TrustDistributionService {
    */
   async generateQRCode(msmeId) {
     const identity = await this.getOrCreateDistributionIdentity(msmeId);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
     // Issue signed distribution token
     const tokenObj = distributionTokenEngine.issueToken({
@@ -155,7 +151,7 @@ class TrustDistributionService {
       expirationDays: 365,
     });
 
-    const targetUrl = `${clientUrl}/verify/${identity.public_slug}?token=${encodeURIComponent(tokenObj.rawToken)}`;
+    const targetUrl = urlResolver.resolveVerificationUrl(identity.public_slug, tokenObj.rawToken);
 
     // Generate PNG Data URL and SVG vector string
     const [qrDataUrl, qrSvg] = await Promise.all([
@@ -288,13 +284,12 @@ class TrustDistributionService {
    * Extracted to be reusable from both getOrCreate and generateQRCode.
    */
   async _generateQRForIdentity(identity, msmeId) {
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
     const tokenObj = distributionTokenEngine.issueToken({
       stableDistributionId: identity.stable_distribution_id,
       publicSlug: identity.public_slug,
       expirationDays: 365,
     });
-    const targetUrl = `${clientUrl}/verify/${identity.public_slug}?token=${encodeURIComponent(tokenObj.rawToken)}`;
+    const targetUrl = urlResolver.resolveVerificationUrl(identity.public_slug, tokenObj.rawToken);
     const [qrDataUrl, qrSvg] = await Promise.all([
       qrCodeGeneratorEngine.generateDataUrl(targetUrl),
       qrCodeGeneratorEngine.generateSVG(targetUrl),

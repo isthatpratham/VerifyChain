@@ -2,7 +2,10 @@ const { verifyToken, extractTokenFromHeader } = require('../utils/jwt');
 const { userRepository, msmeProfileRepository } = require('../repositories');
 
 const authenticate = async (req, res, next) => {
-  const token = extractTokenFromHeader(req.headers.authorization);
+  let token = extractTokenFromHeader(req.headers.authorization);
+  if (!token && req.query && typeof req.query.token === 'string') {
+    token = req.query.token;
+  }
   if (!token) {
     return res.status(401).json({ error: 'Unauthenticated. Token missing or invalid Bearer format.' });
   }
