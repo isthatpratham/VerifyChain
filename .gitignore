@@ -123,3 +123,5 @@ storybook-static/
 *.swp
 *.swo
 *~
+.vercel
+.env*
